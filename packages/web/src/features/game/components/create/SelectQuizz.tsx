@@ -1,17 +1,20 @@
 import type { QuizzWithId } from "@rahoot/common/types/game"
 import Button from "@rahoot/web/features/game/components/Button"
 import clsx from "clsx"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import toast from "react-hot-toast"
 
 type Props = {
   quizzList: QuizzWithId[]
   onSelect: (_id: string) => void
   onDelete?: (_id: string) => void
+  onExport?: (_id: string) => void
+  onImport?: (_file: File) => void
 }
 
-const SelectQuizz = ({ quizzList, onSelect, onDelete }: Props) => {
+const SelectQuizz = ({ quizzList, onSelect, onDelete, onExport, onImport }: Props) => {
   const [selected, setSelected] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleSelect = (id: string) => () => {
     if (selected === id) {
@@ -24,7 +27,6 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete }: Props) => {
   const handleSubmit = () => {
     if (!selected) {
       toast.error("Please select a quizz")
-
       return
     }
 
@@ -41,28 +43,70 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete }: Props) => {
     }
   }
 
+  const handleExport = () => {
+    if (!selected) {
+      toast.error("Select a quizz to export")
+      return
+    }
+
+    onExport?.(selected)
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    onImport?.(file)
+    event.target.value = ""
+  }
+
   return (
     <div className="z-10 flex w-full max-w-md flex-col gap-4 rounded-md bg-white p-4 shadow-sm">
       <div className="flex flex-col items-center justify-center">
         <h1 className="mb-2 text-2xl font-bold">Select a quizz</h1>
+
+        <div className="mb-3 flex w-full gap-2">
+          <Button className="flex-1 bg-gray-800 px-3 text-sm text-white hover:bg-gray-900" onClick={handleImportClick}>
+            Import JSON
+          </Button>
+          <Button className="flex-1 bg-blue-600 px-3 text-sm text-white hover:bg-blue-700" onClick={handleExport} disabled={!selected}>
+            Export Selected
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+        </div>
+
         <div className="w-full space-y-2">
           {quizzList.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">
-              No quizz available. Create one first!
-            </p>
+            <p className="py-4 text-center text-gray-500">No quizz available. Create one first!</p>
           ) : (
             quizzList.map((quizz) => (
               <button
                 key={quizz.id}
                 className={clsx(
                   "flex w-full items-center justify-between rounded-md p-3 outline outline-gray-300",
+                  selected === quizz.id && "outline-primary outline-2",
                 )}
                 onClick={handleSelect(quizz.id)}
               >
                 <div className="flex flex-col items-start">
-                  <span>{quizz.subject}</span>
+                  <span className="font-medium">{quizz.subject}</span>
                   <span className="text-xs text-gray-500">
                     {quizz.questions.length} question{quizz.questions.length > 1 ? "s" : ""}
+                    {quizz.stats && quizz.stats.timesPlayed > 0 && (
+                      <span className="ml-2 text-gray-400">
+                        • {quizz.stats.timesPlayed} play{quizz.stats.timesPlayed > 1 ? "s" : ""}
+                      </span>
+                    )}
                   </span>
                 </div>
 
@@ -81,8 +125,7 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete }: Props) => {
                   <div
                     className={clsx(
                       "h-5 w-5 rounded outline outline-offset-3 outline-gray-300",
-                      selected === quizz.id &&
-                        "bg-primary border-primary/80 shadow-inset",
+                      selected === quizz.id && "bg-primary border-primary/80 shadow-inset",
                     )}
                   ></div>
                 </div>
@@ -91,6 +134,7 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete }: Props) => {
           )}
         </div>
       </div>
+
       <Button onClick={handleSubmit} disabled={!selected}>
         Start Game
       </Button>

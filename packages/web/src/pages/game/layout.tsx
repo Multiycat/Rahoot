@@ -3,10 +3,23 @@ import {
   useSocket,
 } from "@rahoot/web/features/game/contexts/socketProvider"
 import { useEffect } from "react"
-import { Outlet } from "react-router"
+import { Outlet, useLocation } from "react-router"
+
+const Copyright = () => (
+  <div className="fixed bottom-2 left-0 right-0 z-50 text-center">
+    <span className="text-xs text-white/50">
+      © {new Date().getFullYear()} Multiycat. All rights reserved.
+    </span>
+  </div>
+)
 
 const GameLayoutWrapped = () => {
   const { isConnected, connect } = useSocket()
+  const location = useLocation()
+  
+  // Hide copyright on game party pages (during active games)
+  const isPartyPage = location.pathname.includes("/party/")
+  
   useEffect(() => {
     if (!isConnected) {
       connect()
@@ -22,8 +35,9 @@ const GameLayoutWrapped = () => {
   }, [])
 
   return (
-    <div className="antialiased bg-secondary">
+    <div className="antialiased bg-secondary min-h-dvh">
       <Outlet />
+      {!isPartyPage && <Copyright />}
     </div>
   )
 }

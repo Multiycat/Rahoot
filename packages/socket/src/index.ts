@@ -81,7 +81,7 @@ io.on("connection", (socket) => {
       return
     }
 
-    const game = new Game(io, socket, quizz)
+    const game = new Game(io, socket, quizz, quizzId)
     registry.addGame(game)
   })
 

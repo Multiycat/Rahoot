@@ -1,7 +1,8 @@
-import { Answer, Player, Quizz } from "@rahoot/common/types/game"
+import { Answer, GameReport, Player, PlayerResult, QuestionResult, Quizz } from "@rahoot/common/types/game"
 import { Server, Socket } from "@rahoot/common/types/game/socket"
 import { Status, STATUS, StatusDataMap } from "@rahoot/common/types/game/status"
 import { usernameValidator } from "@rahoot/common/validators/auth"
+import Config from "@rahoot/socket/services/config"
 import Registry from "@rahoot/socket/services/registry"
 import { createInviteCode, timeToPoint } from "@rahoot/socket/utils/game"
 import sleep from "@rahoot/socket/utils/sleep"
@@ -9,10 +10,17 @@ import { v4 as uuid } from "uuid"
 
 const registry = Registry.getInstance()
 
+// Extended answer type for tracking response time
+type DetailedAnswer = Answer & {
+  responseTime: number  // ms since question started
+  username: string
+}
+
 class Game {
   io: Server
 
   gameId: string
+  quizzId: string
   manager: {
     id: string
     clientId: string
@@ -20,6 +28,7 @@ class Game {
   }
   inviteCode: string
   started: boolean
+  gameStartTime: number  // Track when the game started
 
   lastBroadcastStatus: { name: Status; data: StatusDataMap[Status] } | null =
     null
@@ -35,7 +44,7 @@ class Game {
 
   round: {
     currentQuestion: number
-    playersAnswers: Answer[]
+    playersAnswers: DetailedAnswer[]
     startTime: number
   }
 
@@ -44,13 +53,17 @@ class Game {
     ms: number
   }
 
-  constructor(io: Server, socket: Socket, quizz: Quizz) {
+  // Store all answers for report generation
+  allAnswers: Map<number, DetailedAnswer[]>  // questionIndex -> answers
+
+  constructor(io: Server, socket: Socket, quizz: Quizz, quizzId: string) {
     if (!io) {
       throw new Error("Socket server not initialized")
     }
 
     this.io = io
     this.gameId = uuid()
+    this.quizzId = quizzId
     this.manager = {
       id: "",
       clientId: "",
@@ -58,6 +71,7 @@ class Game {
     }
     this.inviteCode = ""
     this.started = false
+    this.gameStartTime = 0
 
     this.lastBroadcastStatus = null
     this.managerStatus = null
@@ -78,6 +92,8 @@ class Game {
       active: false,
       ms: 0,
     }
+
+    this.allAnswers = new Map()
 
     const roomInvite = createInviteCode()
     this.inviteCode = roomInvite
@@ -320,6 +336,7 @@ class Game {
     }
 
     this.started = true
+    this.gameStartTime = Date.now()
 
     this.broadcastStatus(STATUS.SHOW_START, {
       time: 3,
@@ -454,6 +471,19 @@ class Game {
     this.leaderboard = sortedPlayers
     this.tempOldLeaderboard = oldLeaderboard
 
+    // Store detailed answers for report before clearing
+    const detailedAnswers: DetailedAnswer[] = this.round.playersAnswers.map(answer => {
+      const player = this.players.find(p => p.id === answer.playerId)
+      return {
+        playerId: answer.playerId,
+        answerId: answer.answerId,
+        points: answer.points,
+        responseTime: (answer as any).responseTime || 0,
+        username: (answer as any).username || player?.username || "Unknown",
+      }
+    })
+    this.allAnswers.set(this.round.currentQuestion, detailedAnswers)
+
     this.round.playersAnswers = []
   }
   selectAnswer(socket: Socket, answerId: number) {
@@ -472,6 +502,9 @@ class Game {
       playerId: player.id,
       answerId,
       points: timeToPoint(this.round.startTime, question.time),
+      // @ts-ignore - we add responseTime for tracking
+      responseTime: Date.now() - this.round.startTime,
+      username: player.username,
     })
 
     this.sendStatus(socket.id, STATUS.WAIT, {
@@ -518,12 +551,141 @@ class Game {
     this.abortCooldown()
   }
 
+
+  private buildGameReport(gameDuration: number): GameReport {
+    const totalQuestions = this.quizz.questions.length
+
+    const questionResults: QuestionResult[] = this.quizz.questions.map((question, questionIndex) => {
+      const answers = this.allAnswers.get(questionIndex) || []
+      const totalResponses = answers.length
+      const correctResponses = answers.filter((a) => a.answerId === question.solution).length
+      const accuracy = totalResponses > 0 ? Math.round((correctResponses / totalResponses) * 100) : 0
+
+      const averageResponseTime = totalResponses > 0
+        ? Math.round(answers.reduce((sum, a) => sum + a.responseTime, 0) / totalResponses)
+        : 0
+
+      const answerDistribution = question.answers.map((answer, answerId) => {
+        const count = answers.filter((a) => a.answerId === answerId).length
+        return {
+          answerId,
+          answer,
+          count,
+          percentage: totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0,
+        }
+      })
+
+      const answeredUsernames = new Set(answers.map((a) => a.username))
+      const playersWhoFailed = answers
+        .filter((a) => a.answerId !== question.solution)
+        .map((a) => a.username)
+      const playersWhoDidntAnswer = this.players
+        .filter((p) => !answeredUsernames.has(p.username))
+        .map((p) => p.username)
+
+      return {
+        questionIndex,
+        question: question.question,
+        image: question.image,
+        correctAnswer: question.solution,
+        totalResponses,
+        correctResponses,
+        accuracy,
+        averageResponseTime,
+        answerDistribution,
+        playersWhoFailed,
+        playersWhoDidntAnswer,
+      }
+    })
+
+    const playerResults: PlayerResult[] = this.players
+      .map((player) => {
+        const answers = this.quizz.questions.map((question, questionIndex) => {
+          const questionAnswers = this.allAnswers.get(questionIndex) || []
+          const playerAnswer = questionAnswers.find((a) => a.playerId === player.id)
+          const correct = playerAnswer ? playerAnswer.answerId === question.solution : false
+
+          return {
+            questionIndex,
+            answerId: playerAnswer ? playerAnswer.answerId : null,
+            correct,
+            points: playerAnswer ? Math.round(playerAnswer.points) : 0,
+            responseTime: playerAnswer ? playerAnswer.responseTime : 0,
+          }
+        })
+
+        const correctAnswers = answers.filter((a) => a.correct).length
+        const answeredCount = answers.filter((a) => a.answerId !== null).length
+        const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+        const averageResponseTime = answeredCount > 0
+          ? Math.round(answers.filter((a) => a.answerId !== null).reduce((sum, a) => sum + a.responseTime, 0) / answeredCount)
+          : 0
+
+        return {
+          username: player.username,
+          finalPoints: player.points,
+          rank: 0,
+          correctAnswers,
+          totalQuestions,
+          accuracy,
+          averageResponseTime,
+          answers,
+        }
+      })
+      .sort((a, b) => b.finalPoints - a.finalPoints)
+      .map((player, index) => ({ ...player, rank: index + 1 }))
+
+    const allAnswersCount = questionResults.reduce((sum, q) => sum + q.totalResponses, 0)
+    const allCorrectAnswers = questionResults.reduce((sum, q) => sum + q.correctResponses, 0)
+    const overallAccuracy = allAnswersCount > 0 ? Math.round((allCorrectAnswers / allAnswersCount) * 100) : 0
+
+    const difficultQuestions = questionResults
+      .filter((q) => q.accuracy < 50)
+      .map((q) => q.questionIndex)
+
+    const playersNeedingHelp = playerResults
+      .filter((p) => p.accuracy < 50)
+      .map((p) => p.username)
+
+    const playersNotFinished = playerResults
+      .filter((p) => p.answers.some((a) => a.answerId === null))
+      .map((p) => p.username)
+
+    return {
+      id: uuid(),
+      playedAt: new Date().toISOString(),
+      duration: gameDuration,
+      totalPlayers: this.players.length,
+      totalQuestions,
+      overallAccuracy,
+      players: playerResults,
+      questions: questionResults,
+      difficultQuestions,
+      playersNeedingHelp,
+      playersNotFinished,
+    }
+  }
   showLeaderboard() {
     const isLastRound =
       this.round.currentQuestion + 1 === this.quizz.questions.length
 
     if (isLastRound) {
       this.started = false
+
+      const gameDuration = Math.round((Date.now() - this.gameStartTime) / 1000)
+      const topPlayers = this.leaderboard.slice(0, 3).map((p) => ({
+        username: p.username,
+        points: p.points,
+      }))
+      const report = this.buildGameReport(gameDuration)
+
+      Config.updateQuizzStats(
+        this.quizzId,
+        this.players.length,
+        topPlayers,
+        gameDuration,
+        report,
+      )
 
       this.broadcastStatus(STATUS.FINISHED, {
         subject: this.quizz.subject,

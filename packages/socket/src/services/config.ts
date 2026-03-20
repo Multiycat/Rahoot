@@ -1,4 +1,4 @@
-import { Quizz, QuizzWithId } from "@rahoot/common/types/game"
+import { GameHistory, GameReport, Quizz, QuizzStats, QuizzWithId } from "@rahoot/common/types/game"
 import fs from "fs"
 import { resolve } from "path"
 import { v4 as uuid } from "uuid"
@@ -159,6 +159,71 @@ class Config {
     console.log(`Quizz deleted: ${filePath}`)
 
     return true
+  }
+
+  static updateQuizzStats(
+    quizzId: string, 
+    playerCount: number, 
+    topPlayers: { username: string; points: number }[],
+    gameDuration: number,
+    report?: GameReport
+  ): void {
+    const filePath = getPath(`quizz/${quizzId}.json`)
+
+    if (!fs.existsSync(filePath)) {
+      console.error(`Quizz not found: ${quizzId}`)
+      return
+    }
+
+    try {
+      const data = fs.readFileSync(filePath, "utf-8")
+      const quizz: Quizz = JSON.parse(data)
+
+      const currentStats: QuizzStats = quizz.stats || {
+        timesPlayed: 0,
+        totalPlayers: 0,
+        history: [],
+      }
+
+      // Update stats
+      currentStats.timesPlayed += 1
+      currentStats.totalPlayers += playerCount
+      currentStats.lastPlayed = new Date().toISOString()
+
+      // Update best score if this winner beat the previous record
+      const winner = topPlayers[0]
+      if (winner && (!currentStats.bestScore || winner.points > currentStats.bestScore.points)) {
+        currentStats.bestScore = {
+          username: winner.username,
+          points: winner.points,
+        }
+      }
+
+      // Add to history (keep last 10 games)
+      const gameHistoryEntry: GameHistory = {
+        id: uuid(),
+        playedAt: new Date().toISOString(),
+        playerCount,
+        duration: gameDuration,
+        topPlayers: topPlayers.slice(0, 3).map((p, index) => ({
+          username: p.username,
+          points: p.points,
+          rank: index + 1,
+        })),
+        report,
+      }
+
+      currentStats.history = currentStats.history || []
+      currentStats.history.unshift(gameHistoryEntry)
+      currentStats.history = currentStats.history.slice(0, 10) // Keep only last 10 games
+
+      quizz.stats = currentStats
+
+      fs.writeFileSync(filePath, JSON.stringify(quizz, null, 2))
+      console.log(`Quizz stats updated: ${quizzId}`)
+    } catch (error) {
+      console.error("Failed to update quizz stats:", error)
+    }
   }
 }
 export default Config
