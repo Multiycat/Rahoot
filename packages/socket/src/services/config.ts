@@ -1,6 +1,7 @@
-import { QuizzWithId } from "@rahoot/common/types/game"
+import { Quizz, QuizzWithId } from "@rahoot/common/types/game"
 import fs from "fs"
 import { resolve } from "path"
+import { v4 as uuid } from "uuid"
 
 const inContainerPath = process.env.CONFIG_PATH
 
@@ -124,6 +125,40 @@ class Config {
       return []
     }
   }
-}
 
+  static saveQuizz(quizz: Quizz): QuizzWithId {
+    const quizzPath = getPath("quizz")
+    
+    if (!fs.existsSync(quizzPath)) {
+      fs.mkdirSync(quizzPath, { recursive: true })
+    }
+
+    // Generate a unique ID for the quizz
+    const id = uuid()
+    const fileName = `${id}.json`
+    const filePath = getPath(`quizz/${fileName}`)
+
+    fs.writeFileSync(filePath, JSON.stringify(quizz, null, 2))
+
+    console.log(`Quizz saved: ${filePath}`)
+
+    return {
+      id,
+      ...quizz,
+    }
+  }
+
+  static deleteQuizz(quizzId: string): boolean {
+    const filePath = getPath(`quizz/${quizzId}.json`)
+
+    if (!fs.existsSync(filePath)) {
+      return false
+    }
+
+    fs.unlinkSync(filePath)
+    console.log(`Quizz deleted: ${filePath}`)
+
+    return true
+  }
+}
 export default Config

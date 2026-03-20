@@ -92,6 +92,7 @@ class Game {
     socket.emit("manager:gameCreated", {
       gameId: this.gameId,
       inviteCode: roomInvite,
+      music: quizz.music,
     })
 
     console.log(
@@ -217,6 +218,7 @@ class Game {
       },
       status,
       players: this.players,
+      music: this.quizz.music,
     })
     socket.emit("game:totalPlayers", this.players.length)
 

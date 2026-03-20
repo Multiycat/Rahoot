@@ -10,6 +10,7 @@ const WS_PORT = 3001
 
 const io: Server = new ServerIO({
   path: "/ws",
+  maxHttpBufferSize: 10 * 1024 * 1024, // 10MB to allow large audio files in base64
 })
 Config.init()
 
@@ -82,6 +83,60 @@ io.on("connection", (socket) => {
 
     const game = new Game(io, socket, quizz)
     registry.addGame(game)
+  })
+
+  socket.on("manager:saveQuizz", (quizz) => {
+    // Validate the quizz
+    if (!quizz || !quizz.subject || !quizz.questions || quizz.questions.length === 0) {
+      socket.emit("manager:errorMessage", "Invalid quizz data")
+      return
+    }
+
+    // Validate each question
+    for (const question of quizz.questions) {
+      if (!question.question || !question.answers || question.answers.length < 2) {
+        socket.emit("manager:errorMessage", "Invalid question data")
+        return
+      }
+      if (question.solution < 0 || question.solution >= question.answers.length) {
+        socket.emit("manager:errorMessage", "Invalid solution index")
+        return
+      }
+    }
+
+    try {
+      const savedQuizz = Config.saveQuizz(quizz)
+      socket.emit("manager:quizzSaved", savedQuizz)
+      
+      // Also send updated quizz list
+      socket.emit("manager:quizzList", Config.quizz())
+      
+      console.log(`Quizz saved: ${quizz.subject} with ${quizz.questions.length} questions`)
+    } catch (error) {
+      console.error("Failed to save quizz:", error)
+      socket.emit("manager:errorMessage", "Failed to save quizz")
+    }
+  })
+
+  socket.on("manager:deleteQuizz", (quizzId) => {
+    try {
+      const deleted = Config.deleteQuizz(quizzId)
+      
+      if (!deleted) {
+        socket.emit("manager:errorMessage", "Quizz not found")
+        return
+      }
+      
+      socket.emit("manager:quizzDeleted", quizzId)
+      
+      // Also send updated quizz list
+      socket.emit("manager:quizzList", Config.quizz())
+      
+      console.log(`Quizz deleted: ${quizzId}`)
+    } catch (error) {
+      console.error("Failed to delete quizz:", error)
+      socket.emit("manager:errorMessage", "Failed to delete quizz")
+    }
   })
 
   socket.on("player:join", (inviteCode) => {

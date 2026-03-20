@@ -3,6 +3,7 @@ import {
   useEvent,
   useSocket,
 } from "@rahoot/web/features/game/contexts/socketProvider"
+import { useMusic } from "@rahoot/web/features/game/hooks/useMusic"
 import { useManagerStore } from "@rahoot/web/features/game/stores/manager"
 import { useQuestionStore } from "@rahoot/web/features/game/stores/question"
 import {
@@ -17,9 +18,17 @@ const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam }: { gameId?: string } = useParams()
   const { socket } = useSocket()
-  const { gameId, status, setGameId, setStatus, setPlayers, reset } =
+  const { gameId, status, music, setGameId, setStatus, setPlayers, setMusic, reset } =
     useManagerStore()
   const { setQuestionStates } = useQuestionStore()
+
+  // Use custom music if available
+  useMusic({
+    music,
+    status: status?.name,
+    volume: 0.3,
+    enabled: !!music,
+  })
 
   useEvent("game:status", ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {
@@ -35,11 +44,12 @@ const ManagerGamePage = () => {
 
   useEvent(
     "manager:successReconnect",
-    ({ gameId, status, players, currentQuestion }) => {
+    ({ gameId, status, players, currentQuestion, music }) => {
       setGameId(gameId)
       setStatus(status.name, status.data)
       setPlayers(players)
       setQuestionStates(currentQuestion)
+      setMusic(music)
     },
   )
 
@@ -60,13 +70,24 @@ const ManagerGamePage = () => {
     }
   }
 
+  const handleBackToManager = () => {
+    reset()
+    setQuestionStates(null)
+    navigate("/manager")
+  }
+
   const CurrentComponent =
     status && isKeyOf(GAME_STATE_COMPONENTS_MANAGER, status.name)
       ? GAME_STATE_COMPONENTS_MANAGER[status.name]
       : null
 
   return (
-    <GameWrapper statusName={status?.name} onNext={handleSkip} manager>
+    <GameWrapper 
+      statusName={status?.name} 
+      onNext={handleSkip} 
+      manager
+      onBackToManager={handleBackToManager}
+    >
       {CurrentComponent && <CurrentComponent data={status!.data as never} />}
     </GameWrapper>
   )

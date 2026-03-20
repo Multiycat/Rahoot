@@ -12,14 +12,19 @@ import { MANAGER_SKIP_BTN } from "@rahoot/web/features/game/utils/constants"
 import clsx from "clsx"
 import { type PropsWithChildren, useEffect, useState } from "react"
 import toast from "react-hot-toast"
+import { useNavigate } from "react-router"
 
 type Props = PropsWithChildren & {
   statusName: Status | undefined
   onNext?: () => void
   manager?: boolean
+  onBackToManager?: () => void
 }
 
-const GameWrapper = ({ children, statusName, onNext, manager }: Props) => {
+const BACK_TO_MANAGER_STATUSES: Status[] = ["SHOW_ROOM", "FINISHED"]
+
+const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }: Props) => {
+  const navigate = useNavigate()
   const { isConnected } = useSocket()
   const { player } = usePlayerStore()
   const { questionStates, setQuestionStates } = useQuestionStore()
@@ -47,6 +52,16 @@ const GameWrapper = ({ children, statusName, onNext, manager }: Props) => {
     onNext?.()
   }
 
+  const showBackToManager = manager && statusName && BACK_TO_MANAGER_STATUSES.includes(statusName)
+
+  const handleBackToManager = () => {
+    if (onBackToManager) {
+      onBackToManager()
+    } else {
+      navigate("/manager")
+    }
+  }
+
   return (
     <section className="relative min-h-dvh flex">
       <div className="fixed top-0 left-0 h-full w-full">
@@ -66,22 +81,33 @@ const GameWrapper = ({ children, statusName, onNext, manager }: Props) => {
         ) : (
           <>
             <div className="flex w-full justify-between p-4">
+              {showBackToManager && (
+                <Button
+                  className="bg-gray-700 px-4 text-white hover:bg-gray-800"
+                  onClick={handleBackToManager}
+                >
+                  ← Back to Manager
+                </Button>
+              )}
+
               {questionStates && (
                 <div className="shadow-inset flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
                   {`${questionStates.current} / ${questionStates.total}`}
                 </div>
               )}
 
-              {manager && next && (
-                <Button
-                  className={clsx("self-end bg-white px-4 text-black!", {
-                    "pointer-events-none": isDisabled,
-                  })}
-                  onClick={handleNext}
-                >
-                  {next}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {manager && next && (
+                  <Button
+                    className={clsx("bg-white px-4 text-black!", {
+                      "pointer-events-none": isDisabled,
+                    })}
+                    onClick={handleNext}
+                  >
+                    {next}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {children}

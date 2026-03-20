@@ -1,6 +1,7 @@
 import type {
   GameUpdateQuestion,
   Player,
+  QuizzMusic,
   QuizzWithId,
 } from "@rahoot/common/types/game"
 import type { Status, StatusDataMap } from "@rahoot/common/types/game/status"
@@ -54,9 +55,12 @@ export interface ServerToClientEvents {
     status: { name: Status; data: StatusDataMap[Status] }
     players: Player[]
     currentQuestion: GameUpdateQuestion
+    music?: QuizzMusic
   }) => void
   "manager:quizzList": (_quizzList: QuizzWithId[]) => void
-  "manager:gameCreated": (_data: { gameId: string; inviteCode: string }) => void
+  "manager:quizzSaved": (_quizz: QuizzWithId) => void
+  "manager:quizzDeleted": (_quizzId: string) => void
+  "manager:gameCreated": (_data: { gameId: string; inviteCode: string; music?: QuizzMusic }) => void
   "manager:statusUpdate": (_data: {
     status: Status
     data: StatusDataMap[Status]
@@ -70,6 +74,8 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   // Manager actions
   "game:create": (_quizzId: string) => void
+  "manager:saveQuizz": (_quizz: import("@rahoot/common/types/game").Quizz) => void
+  "manager:deleteQuizz": (_quizzId: string) => void
   "manager:auth": (_password: string) => void
   "manager:reconnect": (_message: { gameId: string }) => void
   "manager:kickPlayer": (_message: { gameId: string; playerId: string }) => void
