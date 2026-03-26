@@ -31,6 +31,10 @@ WORKDIR /home/container
 # Copier les assets construits
 COPY --from=builder /home/container/packages/web/dist           /home/container/web
 COPY --from=builder /home/container/packages/socket/dist/index.cjs /home/container/socket/index.cjs
+
+RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs \
+    && chmod -R 777 /var/lib/nginx
+
 # (Adapter si tu as un autre point d'entrée ou des ressources à copier)
 EXPOSE 8008
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

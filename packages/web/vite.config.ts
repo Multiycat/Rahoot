@@ -17,13 +17,13 @@ export default defineConfig({
     host: "0.0.0.0",
     proxy: {
       "/ws": {
-        target: "http://localhost:3001",
+        target: "http://84.54.32.59:3003",
         ws: true,
       },
     },
   },
   preview: {
-    port: 3000,
+    port: 3003,
     host: "0.0.0.0",
   },
 });
