@@ -64,7 +64,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     let socketClient: TypedSocket | null = null;
 
     try {
-      socketClient = io("https://84.54.32.59:3003", {
+      socketClient = io("http://84.54.32.59:3003", {
         path: "/ws",
         autoConnect: false,
         reconnection: true,
