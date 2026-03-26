@@ -70,6 +70,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
+        withCredentials: true,
         auth: {
           clientId,
         },
