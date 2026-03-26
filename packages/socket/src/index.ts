@@ -6,7 +6,7 @@ import Registry from "@rahoot/socket/services/registry"
 import { withGame } from "@rahoot/socket/utils/game"
 import { Server as ServerIO } from "socket.io"
 
-const WS_PORT = 3001
+const WS_PORT = 3003
 
 const io: Server = new ServerIO({
   path: "/ws",
@@ -89,28 +89,35 @@ io.on("connection", (socket) => {
     // Validate the quizz
     if (!quizz || !quizz.subject || !quizz.questions || quizz.questions.length === 0) {
       socket.emit("manager:errorMessage", "Invalid quizz data")
-      return
+
+      
+return
     }
 
     // Validate each question
     for (const question of quizz.questions) {
       if (!question.question || !question.answers || question.answers.length < 2) {
         socket.emit("manager:errorMessage", "Invalid question data")
-        return
+
+        
+return
       }
+
       if (question.solution < 0 || question.solution >= question.answers.length) {
         socket.emit("manager:errorMessage", "Invalid solution index")
-        return
+
+        
+return
       }
     }
 
     try {
       const savedQuizz = Config.saveQuizz(quizz)
       socket.emit("manager:quizzSaved", savedQuizz)
-      
+
       // Also send updated quizz list
       socket.emit("manager:quizzList", Config.quizz())
-      
+
       console.log(`Quizz saved: ${quizz.subject} with ${quizz.questions.length} questions`)
     } catch (error) {
       console.error("Failed to save quizz:", error)
@@ -121,17 +128,19 @@ io.on("connection", (socket) => {
   socket.on("manager:deleteQuizz", (quizzId) => {
     try {
       const deleted = Config.deleteQuizz(quizzId)
-      
+
       if (!deleted) {
         socket.emit("manager:errorMessage", "Quizz not found")
-        return
+
+        
+return
       }
-      
+
       socket.emit("manager:quizzDeleted", quizzId)
-      
+
       // Also send updated quizz list
       socket.emit("manager:quizzList", Config.quizz())
-      
+
       console.log(`Quizz deleted: ${quizzId}`)
     } catch (error) {
       console.error("Failed to delete quizz:", error)

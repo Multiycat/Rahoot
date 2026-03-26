@@ -1,33 +1,36 @@
-# ---- BASE ----
+##################
+# ---- BASE ---- #
+##################
 FROM node:24-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# ---- BUILDER ----
+#####################
+# ---- BUILDER ---- #
+#####################
 FROM base AS builder
-WORKDIR /app
-
+WORKDIR /home/container
+# Copie les fichiers essentiels du monorepo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/common/package.json ./packages/common/
-COPY packages/web/package.json ./packages/web/
-COPY packages/socket/package.json ./packages/socket/
-
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
+COPY packages/web/package.json     ./packages/web/
+COPY packages/socket/package.json  ./packages/socket/
+# Installer les dépendances via cache mount pour pnpm
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
-
 RUN pnpm build
-
-# ---- RUNNER ----
+#####################
+# ---- RUNNER ----  #
+#####################
 FROM alpine:3.21 AS runner
-
-RUN apk add --no-cache nginx nodejs supervisor
-
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
-COPY docker/supervisord.conf /etc/supervisord.conf
-
-COPY --from=builder /app/packages/web/dist /app/web
-COPY --from=builder /app/packages/socket/dist/index.cjs /app/socket/index.cjs
-
-EXPOSE 3000
-
+RUN apk add --no-cache nginx nodejs npm supervisor
+# Copier les configs nginx et supervisor
+COPY docker/nginx.conf        /etc/nginx/http.d/default.conf
+COPY docker/supervisord.conf  /etc/supervisord.conf
+WORKDIR /home/container
+# Copier les assets construits
+COPY --from=builder /home/container/packages/web/dist           /home/container/web
+COPY --from=builder /home/container/packages/socket/dist/index.cjs /home/container/socket/index.cjs
+# (Adapter si tu as un autre point d'entrée ou des ressources à copier)
+EXPOSE 8008
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
