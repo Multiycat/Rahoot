@@ -1,4 +1,12 @@
-import { GameHistory, GameReport, Quizz, QuizzStats, QuizzWithId } from "@rahoot/common/types/game"
+import {
+  GameHistory,
+  GameReport,
+  QuestionBankItem,
+  Quizz,
+  QuizzQuestion,
+  QuizzStats,
+  QuizzWithId,
+} from "@rahoot/common/types/game"
 import fs from "fs"
 import { resolve } from "path"
 import { v4 as uuid } from "uuid"
@@ -73,6 +81,12 @@ class Config {
           2,
         ),
       )
+    }
+
+    const isQuestionBankExists = fs.existsSync(getPath("question-bank.json"))
+
+    if (!isQuestionBankExists) {
+      fs.writeFileSync(getPath("question-bank.json"), JSON.stringify([], null, 2))
     }
   }
 
@@ -158,6 +172,65 @@ class Config {
     fs.unlinkSync(filePath)
     console.log(`Quizz deleted: ${filePath}`)
 
+    return true
+  }
+
+  static updateQuizz(quizzId: string, quizz: Quizz): QuizzWithId | null {
+    const filePath = getPath(`quizz/${quizzId}.json`)
+
+    if (!fs.existsSync(filePath)) {
+      return null
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(quizz, null, 2))
+    console.log(`Quizz updated: ${filePath}`)
+
+    return {
+      id: quizzId,
+      ...quizz,
+    }
+  }
+
+  static questionBank(): QuestionBankItem[] {
+    const filePath = getPath("question-bank.json")
+
+    if (!fs.existsSync(filePath)) {
+      return []
+    }
+
+    try {
+      const content = fs.readFileSync(filePath, "utf-8")
+      const parsed = JSON.parse(content)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (error) {
+      console.error("Failed to read question bank:", error)
+      return []
+    }
+  }
+
+  static saveQuestionBankItem(question: QuizzQuestion): QuestionBankItem {
+    const current = Config.questionBank()
+    const item: QuestionBankItem = {
+      id: uuid(),
+      createdAt: new Date().toISOString(),
+      question,
+    }
+
+    current.unshift(item)
+    fs.writeFileSync(getPath("question-bank.json"), JSON.stringify(current, null, 2))
+
+    return item
+  }
+
+  static deleteQuestionBankItem(id: string): boolean {
+    const current = Config.questionBank()
+    const next = current.filter((item) => item.id !== id)
+
+    if (next.length === current.length) {
+      return false
+    }
+
+    fs.writeFileSync(getPath("question-bank.json"), JSON.stringify(next, null, 2))
     return true
   }
 

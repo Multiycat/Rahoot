@@ -1,4 +1,5 @@
 import type { StatusDataMap } from "@rahoot/common/types/game/status"
+import type { QuizzTheme } from "@rahoot/common/types/game"
 import {
   createStatus,
   type Status,
@@ -14,6 +15,7 @@ type PlayerStore<T> = {
   gameId: string | null
   player: PlayerState | null
   status: Status<T> | null
+  theme: QuizzTheme
 
   setGameId: (_gameId: string | null) => void
 
@@ -23,6 +25,7 @@ type PlayerStore<T> = {
   updatePoints: (_points: number) => void
 
   setStatus: <K extends keyof T>(_name: K, _data: T[K]) => void
+  setTheme: (_theme: QuizzTheme) => void
 
   reset: () => void
 }
@@ -31,6 +34,7 @@ const initialState = {
   gameId: null,
   player: null,
   status: null,
+  theme: "classic" as QuizzTheme,
 }
 
 export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
@@ -57,6 +61,7 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
     })),
 
   setStatus: (name, data) => set({ status: createStatus(name, data) }),
+  setTheme: (theme) => set({ theme }),
 
   reset: () => set(initialState),
 }))

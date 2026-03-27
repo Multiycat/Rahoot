@@ -1,3 +1,4 @@
+import type { QuizzTheme } from "@rahoot/common/types/game"
 import type { Status } from "@rahoot/common/types/game/status"
 import background from "@rahoot/web/assets/background.webp"
 import Button from "@rahoot/web/features/game/components/Button"
@@ -6,6 +7,7 @@ import {
   useEvent,
   useSocket,
 } from "@rahoot/web/features/game/contexts/socketProvider"
+import { useManagerStore } from "@rahoot/web/features/game/stores/manager"
 import { usePlayerStore } from "@rahoot/web/features/game/stores/player"
 import { useQuestionStore } from "@rahoot/web/features/game/stores/question"
 import { MANAGER_SKIP_BTN } from "@rahoot/web/features/game/utils/constants"
@@ -26,6 +28,8 @@ const BACK_TO_MANAGER_STATUSES: Status[] = ["SHOW_ROOM", "FINISHED"]
 const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }: Props) => {
   const navigate = useNavigate()
   const { isConnected } = useSocket()
+  const { theme: managerTheme } = useManagerStore()
+  const { theme: playerTheme } = usePlayerStore()
   const { player } = usePlayerStore()
   const { questionStates, setQuestionStates } = useQuestionStore()
   const [isDisabled, setIsDisabled] = useState(false)
@@ -53,6 +57,7 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
   }
 
   const showBackToManager = manager && statusName && BACK_TO_MANAGER_STATUSES.includes(statusName)
+  const theme: QuizzTheme = manager ? managerTheme : playerTheme
 
   const handleBackToManager = () => {
     if (onBackToManager) {
@@ -62,6 +67,10 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
     }
   }
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-game-theme", theme)
+  }, [theme])
+
   return (
     <section className="relative min-h-dvh flex">
       <div className="fixed top-0 left-0 h-full w-full">
@@ -70,6 +79,7 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
           src={background}
           alt="background"
         />
+        <div className={clsx("theme-overlay absolute inset-0", `theme-${theme}`)}></div>
       </div>
 
       <div className="z-10 flex flex-1 w-full flex-col justify-between">

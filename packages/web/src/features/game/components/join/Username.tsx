@@ -13,7 +13,7 @@ import { useNavigate } from "react-router"
 
 const Username = () => {
   const { socket } = useSocket()
-  const { gameId, login, setStatus } = usePlayerStore()
+  const { gameId, login, setStatus, setTheme } = usePlayerStore()
   const navigate = useNavigate()
   const [username, setUsername] = useState("")
 
@@ -31,8 +31,9 @@ const Username = () => {
     }
   }
 
-  useEvent("game:successJoin", (gameId) => {
+  useEvent("game:successJoin", ({ gameId, theme }) => {
     setStatus(STATUS.WAIT, { text: "Waiting for the players" })
+    setTheme(theme || "classic")
     login(username)
 
     navigate(`/party/${gameId}`)

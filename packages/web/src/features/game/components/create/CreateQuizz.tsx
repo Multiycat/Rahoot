@@ -1,18 +1,31 @@
-import type { Quizz, QuizzMusic } from "@rahoot/common/types/game"
+import type {
+  QuestionBankItem,
+  Quizz,
+  QuizzMusic,
+  QuizzQuestion,
+  QuizzTheme,
+} from "@rahoot/common/types/game"
+import Button from "@rahoot/web/features/game/components/Button"
 import Circle from "@rahoot/web/features/game/components/icons/Circle"
+import QuestionBankPanel from "@rahoot/web/features/game/components/create/QuestionBankPanel"
 import Rhombus from "@rahoot/web/features/game/components/icons/Rhombus"
 import Square from "@rahoot/web/features/game/components/icons/Square"
 import Triangle from "@rahoot/web/features/game/components/icons/Triangle"
 import MusicInput from "@rahoot/web/features/game/components/create/MusicInput"
 import clsx from "clsx"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 
-type Question = Quizz["questions"][number]
+type Question = QuizzQuestion
 
 type Props = {
   onSubmit: (quizz: Quizz) => void
   onCancel: () => void
+  initialQuizz?: Quizz
+  submitLabel?: string
+  questionBankItems?: QuestionBankItem[]
+  onAddToQuestionBank?: (_question: QuizzQuestion) => void
+  onDeleteQuestionBankItem?: (_id: string) => void
 }
 
 const emptyQuestion: Question = {
@@ -50,12 +63,44 @@ const answerConfig = [
   { bg: "bg-green-500", hoverBg: "hover:bg-green-600", icon: Square, label: "Square" },
 ]
 
-const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
+const themeOptions: Array<{ id: QuizzTheme; label: string }> = [
+  { id: "classic", label: "Classic" },
+  { id: "sunset", label: "Sunset" },
+  { id: "ocean", label: "Ocean" },
+]
+
+const CreateQuizz = ({
+  onSubmit,
+  onCancel,
+  initialQuizz,
+  submitLabel = "Save",
+  questionBankItems = [],
+  onAddToQuestionBank,
+  onDeleteQuestionBankItem,
+}: Props) => {
   const [subject, setSubject] = useState("")
   const [music, setMusic] = useState<QuizzMusic>({ ...emptyMusic })
+  const [theme, setTheme] = useState<QuizzTheme>("classic")
   const [showMusicSettings, setShowMusicSettings] = useState(false)
   const [questions, setQuestions] = useState<Question[]>([{ ...emptyQuestion }])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+
+  useEffect(() => {
+    if (!initialQuizz) {
+      setSubject("")
+      setMusic({ ...emptyMusic })
+      setTheme("classic")
+      setQuestions([{ ...emptyQuestion }])
+      setCurrentQuestionIndex(0)
+      return
+    }
+
+    setSubject(initialQuizz.subject)
+    setMusic({ ...emptyMusic, ...(initialQuizz.music || {}) })
+    setTheme(initialQuizz.theme || "classic")
+    setQuestions(initialQuizz.questions.length ? initialQuizz.questions : [{ ...emptyQuestion }])
+    setCurrentQuestionIndex(0)
+  }, [initialQuizz])
 
   const currentQuestion = questions[currentQuestionIndex]
 
@@ -78,6 +123,43 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
   const addQuestion = () => {
     setQuestions((prev) => [...prev, { ...emptyQuestion }])
     setCurrentQuestionIndex(questions.length)
+  }
+
+  const addQuestionFromBank = (question: QuizzQuestion) => {
+    const cloned: QuizzQuestion = {
+      ...question,
+      answers: [...question.answers],
+    }
+
+    setQuestions((prev) => [...prev, cloned])
+    setCurrentQuestionIndex(questions.length)
+    toast.success("Question inserted from bank")
+  }
+
+  const saveCurrentQuestionToBank = () => {
+    if (!currentQuestion.question.trim()) {
+      toast.error("Question is empty")
+      return
+    }
+
+    const filledAnswers = currentQuestion.answers.filter((a) => a.trim())
+    if (filledAnswers.length < 2) {
+      toast.error("Need at least 2 answers")
+      return
+    }
+
+    if (!currentQuestion.answers[currentQuestion.solution]?.trim()) {
+      toast.error("Invalid correct answer")
+      return
+    }
+
+    const questionToSave: QuizzQuestion = {
+      ...currentQuestion,
+      question: currentQuestion.question.trim(),
+      answers: currentQuestion.answers.map((a) => a.trim()).filter(Boolean),
+    }
+
+    onAddToQuestionBank?.(questionToSave)
   }
 
   const duplicateQuestion = (index: number) => {
@@ -136,6 +218,7 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
     onSubmit({
       subject,
       music: Object.keys(cleanedMusic).length > 0 ? cleanedMusic : undefined,
+      theme,
       questions: cleanedQuestions,
     })
   }
@@ -225,6 +308,23 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
           >
             Exit
           </button>
+
+          <div className="flex items-center gap-2 rounded-lg bg-gray-700 p-1">
+            {themeOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setTheme(option.id)}
+                className={clsx(
+                  "rounded px-3 py-1 text-xs font-semibold",
+                  theme === option.id
+                    ? "bg-orange-500 text-white"
+                    : "text-gray-200 hover:bg-gray-600",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           
           <input
             type="text"
@@ -251,7 +351,7 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
             onClick={handleSubmit}
             className="rounded-lg bg-green-600 px-6 py-2 text-sm font-bold text-white hover:bg-green-700"
           >
-            Save
+            {submitLabel}
           </button>
         </div>
 
@@ -365,9 +465,16 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
         </div>
       </div>
 
-      {/* Right Sidebar - Question Settings */}
+        {/* Right Sidebar - Question Settings */}
       <div className="flex w-56 flex-col gap-4 rounded-lg bg-gray-800 p-4">
         <h3 className="text-sm font-semibold text-white">Question Settings</h3>
+
+        <Button
+          className="bg-orange-500 px-3 py-1 text-sm text-white hover:bg-orange-600"
+          onClick={saveCurrentQuestionToBank}
+        >
+          Save to Bank
+        </Button>
         
         {/* Time Limit */}
         <div>
@@ -441,6 +548,12 @@ const CreateQuizz = ({ onSubmit, onCancel }: Props) => {
           <span className="text-2xl font-bold text-purple-400">{questions.length}</span>
           <p className="text-xs text-purple-300">question{questions.length > 1 ? "s" : ""}</p>
         </div>
+
+        <QuestionBankPanel
+          items={questionBankItems}
+          onInsert={addQuestionFromBank}
+          onDelete={(id) => onDeleteQuestionBankItem?.(id)}
+        />
       </div>
 
       {/* Music Settings Modal */}

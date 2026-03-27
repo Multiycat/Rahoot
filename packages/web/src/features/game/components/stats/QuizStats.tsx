@@ -90,59 +90,59 @@ const QuizStats = ({ quiz, onBack }: Props) => {
   }
 
   return (
-    <div className="z-10 flex w-full max-w-4xl flex-col gap-6">
+    <div className="stats-shell z-10 flex w-full max-w-5xl flex-col gap-6 rounded-3xl p-2">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="glass-card flex items-center gap-4 rounded-2xl p-5">
         <button
           onClick={onBack}
-          className="p-2 rounded-lg hover:bg-white/50 transition-colors"
+          className="rounded-xl bg-gray-900 p-2 text-white transition-colors hover:bg-black"
         >
-          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{quiz.subject}</h1>
-          <p className="text-gray-500">{quiz.questions.length} questions</p>
+          <h1 className="text-2xl font-black text-gray-900 md:text-3xl">{quiz.subject}</h1>
+          <p className="text-sm text-gray-500">{quiz.questions.length} questions</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-3xl font-bold text-primary">{stats?.timesPlayed || 0}</div>
-          <div className="text-sm text-gray-500">Times Played</div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="glass-card lift-card rounded-2xl p-4">
+          <div className="text-3xl font-black text-primary">{stats?.timesPlayed || 0}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Times Played</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-3xl font-bold text-blue-500">{stats?.totalPlayers || 0}</div>
-          <div className="text-sm text-gray-500">Total Players</div>
+        <div className="glass-card lift-card rounded-2xl p-4">
+          <div className="text-3xl font-black text-blue-500">{stats?.totalPlayers || 0}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Players</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-3xl font-bold text-green-500">{averagePlayersPerGame}</div>
-          <div className="text-sm text-gray-500">Avg Players/Game</div>
+        <div className="glass-card lift-card rounded-2xl p-4">
+          <div className="text-3xl font-black text-green-500">{averagePlayersPerGame}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Players/Game</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-3xl font-bold text-purple-500">{formatDuration(averageDuration)}</div>
-          <div className="text-sm text-gray-500">Avg Duration</div>
+        <div className="glass-card lift-card rounded-2xl p-4">
+          <div className="text-3xl font-black text-purple-500">{formatDuration(averageDuration)}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Duration</div>
         </div>
       </div>
 
       {/* Best Score & Last Played */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {stats?.bestScore && (
-          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl p-4 shadow-lg text-white">
+          <div className="lift-card rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-500 p-5 text-white shadow-xl">
             <div className="flex items-center gap-3">
               <div className="text-4xl">🏆</div>
               <div>
-                <div className="text-sm opacity-90">Best Score</div>
-                <div className="text-2xl font-bold">{stats.bestScore.username}</div>
-                <div className="text-xl">{stats.bestScore.points} points</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.15em] opacity-90">Best Score</div>
+                <div className="text-2xl font-black">{stats.bestScore.username}</div>
+                <div className="text-lg font-semibold">{stats.bestScore.points} points</div>
               </div>
             </div>
           </div>
         )}
         
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="glass-card rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="text-4xl">🕐</div>
             <div>
@@ -162,15 +162,15 @@ const QuizStats = ({ quiz, onBack }: Props) => {
 
       {/* Top Winners */}
       {topWinners.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b">
-            <h2 className="text-lg font-semibold text-gray-700">Top Winners</h2>
+        <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="border-b border-white/70 bg-white/70 px-4 py-3">
+            <h2 className="text-lg font-bold text-gray-700">Top Winners</h2>
           </div>
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100/80">
             {topWinners.map(([username, wins], index) => (
-              <div key={username} className="p-4 flex items-center justify-between">
+              <div key={username} className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-white ${
                     index === 0 ? "bg-yellow-500" :
                     index === 1 ? "bg-gray-400" :
                     index === 2 ? "bg-amber-600" :
@@ -190,9 +190,9 @@ const QuizStats = ({ quiz, onBack }: Props) => {
       )}
 
       {/* Game History */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="bg-gray-50 px-4 py-3 border-b">
-          <h2 className="text-lg font-semibold text-gray-700">Game History</h2>
+      <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="border-b border-white/70 bg-white/70 px-4 py-3">
+          <h2 className="text-lg font-bold text-gray-700">Game History</h2>
         </div>
         
         {history.length === 0 ? (
@@ -200,7 +200,7 @@ const QuizStats = ({ quiz, onBack }: Props) => {
             No games played yet
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100/80">
             {history.map((game) => (
               <div key={game.id} className="p-4">
                 <div className="mb-3 flex items-center justify-between">
@@ -270,9 +270,9 @@ const QuizStats = ({ quiz, onBack }: Props) => {
 
       {/* Stats Summary */}
       {history.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="glass-card rounded-2xl p-4">
+          <h3 className="mb-3 text-lg font-bold text-gray-700">Summary</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
             <div>
               <span className="text-gray-500">Total play time:</span>
               <span className="ml-2 font-medium">{formatDuration(totalDuration)}</span>

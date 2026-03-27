@@ -16,7 +16,7 @@ const PlayerGamePage = () => {
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { gameId: gameIdParam }: { gameId?: string } = useParams()
-  const { status, setPlayer, setGameId, setStatus, reset } = usePlayerStore()
+  const { status, setPlayer, setGameId, setStatus, setTheme, reset } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
 
   useEvent("connect", () => {
@@ -27,11 +27,12 @@ const PlayerGamePage = () => {
 
   useEvent(
     "player:successReconnect",
-    ({ gameId, status, player, currentQuestion }) => {
+    ({ gameId, status, player, currentQuestion, theme }) => {
       setGameId(gameId)
       setStatus(status.name, status.data)
       setPlayer(player)
       setQuestionStates(currentQuestion)
+      setTheme(theme || "classic")
     },
   )
 
@@ -39,6 +40,10 @@ const PlayerGamePage = () => {
     if (name in GAME_STATE_COMPONENTS) {
       setStatus(name, data)
     }
+  })
+
+  useEvent("game:theme", (theme) => {
+    setTheme(theme)
   })
 
   useEvent("game:reset", (message) => {

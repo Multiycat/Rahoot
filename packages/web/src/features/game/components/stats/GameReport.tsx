@@ -18,6 +18,69 @@ const formatDuration = (seconds: number): string => {
 
 const formatMs = (ms: number): string => `${(ms / 1000).toFixed(2)}s`
 
+const downloadReportAsPdf = (report: GameReportType, quizSubject: string) => {
+  const rows = report.players
+    .map(
+      (player) =>
+        `<tr><td>${player.rank}</td><td>${player.username}</td><td>${player.finalPoints}</td><td>${player.accuracy}%</td><td>${formatMs(player.averageResponseTime)}</td></tr>`,
+    )
+    .join("")
+
+  const html = `
+  <html>
+    <head>
+      <title>Report - ${quizSubject}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+        h1 { margin: 0; font-size: 28px; }
+        h2 { margin-top: 28px; font-size: 20px; }
+        .muted { color: #6b7280; margin-top: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+        .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #f9fafb; }
+      </style>
+    </head>
+    <body>
+      <h1>${quizSubject}</h1>
+      <p class="muted">Played at ${new Date(report.playedAt).toLocaleString()}</p>
+
+      <div class="grid">
+        <div class="card"><b>Participants</b><div>${report.totalPlayers}</div></div>
+        <div class="card"><b>Questions</b><div>${report.totalQuestions}</div></div>
+        <div class="card"><b>Overall accuracy</b><div>${report.overallAccuracy}%</div></div>
+      </div>
+
+      <h2>Participants</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Points</th>
+            <th>Accuracy</th>
+            <th>Avg response</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body>
+  </html>
+  `
+
+  const popup = window.open("", "_blank", "noopener,noreferrer,width=1000,height=900")
+  if (!popup) {
+    return
+  }
+
+  popup.document.open()
+  popup.document.write(html)
+  popup.document.close()
+  popup.focus()
+  popup.print()
+}
+
 const GameReport = ({ report, quizSubject }: Props) => {
   const [tab, setTab] = useState<Tab>("summary")
 
@@ -36,18 +99,27 @@ const GameReport = ({ report, quizSubject }: Props) => {
   }
 
   return (
-    <div className="rounded-xl bg-[#ececec] p-4 md:p-6">
+    <div className="stats-shell rounded-3xl p-2">
+      <div className="glass-card rounded-2xl p-4 md:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-gray-700">Rapport</p>
-          <h2 className="text-2xl font-bold text-gray-900">{quizSubject}</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-500">Rapport</p>
+          <h2 className="text-2xl font-black text-gray-900">{quizSubject}</h2>
         </div>
-        <div className="rounded-md bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">
-          En live • {report.totalPlayers} participants
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadReportAsPdf(report, quizSubject)}
+            className="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black"
+          >
+            Export PDF
+          </button>
+          <div className="rounded-md bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">
+            En live • {report.totalPlayers} participants
+          </div>
         </div>
       </div>
 
-      <div className="mb-4 flex gap-2 border-b border-gray-300">
+      <div className="mb-4 flex gap-2 border-b border-gray-200">
         {[
           ["summary", "Synthese"],
           ["participants", `Participants (${report.players.length})`],
@@ -70,7 +142,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
 
       {tab === "summary" && (
         <div className="grid gap-4 md:grid-cols-12">
-          <div className="rounded-lg bg-white p-5 shadow-sm md:col-span-6">
+          <div className="lift-card rounded-2xl bg-white p-5 shadow-sm md:col-span-6">
             <div className="flex items-center gap-4">
               <div className="relative h-24 w-24 rounded-full" style={ringStyle}>
                 <div className="absolute inset-2 grid place-items-center rounded-full bg-white text-center">
@@ -85,7 +157,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-5 shadow-sm md:col-span-3">
+          <div className="lift-card rounded-2xl bg-white p-5 shadow-sm md:col-span-3">
             <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between"><span>Participants</span><b>{report.totalPlayers}</b></div>
               <div className="flex items-center justify-between"><span>Questions</span><b>{report.totalQuestions}</b></div>
@@ -93,12 +165,12 @@ const GameReport = ({ report, quizSubject }: Props) => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-gradient-to-r from-sky-400 to-blue-500 p-5 text-white shadow-sm md:col-span-3">
+          <div className="lift-card rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 p-5 text-white shadow-sm md:col-span-3">
             <p className="text-sm">Podium</p>
             <p className="mt-1 text-2xl font-extrabold">Top 3</p>
           </div>
 
-          <div className="rounded-lg bg-white p-4 shadow-sm md:col-span-6">
+          <div className="lift-card rounded-2xl bg-white p-4 shadow-sm md:col-span-6">
             <h4 className="mb-3 text-lg font-bold">Questions difficiles ({difficultQuestions.length})</h4>
             <div className="space-y-2">
               {difficultQuestions.slice(0, 5).map((q) => (
@@ -111,7 +183,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-4 shadow-sm md:col-span-3">
+          <div className="lift-card rounded-2xl bg-white p-4 shadow-sm md:col-span-3">
             <h4 className="mb-3 text-lg font-bold">Aide requise ({playersNeedHelp.length})</h4>
             <div className="space-y-2 text-sm">
               {playersNeedHelp.slice(0, 7).map((p) => (
@@ -122,7 +194,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-4 shadow-sm md:col-span-3">
+          <div className="lift-card rounded-2xl bg-white p-4 shadow-sm md:col-span-3">
             <h4 className="mb-3 text-lg font-bold">Non termine ({report.playersNotFinished.length})</h4>
             <div className="space-y-2 text-sm">
               {report.playersNotFinished.slice(0, 7).map((name) => (
@@ -136,7 +208,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
       )}
 
       {tab === "participants" && (
-        <div className="rounded-lg bg-white p-4 shadow-sm">
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="grid grid-cols-[40px_1fr_120px_120px_120px] gap-2 border-b pb-2 text-xs font-semibold text-gray-500">
             <span>#</span><span>Joueur</span><span>Points</span><span>Precision</span><span>Temps moyen</span>
           </div>
@@ -157,7 +229,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
       {tab === "questions" && (
         <div className="space-y-3">
           {report.questions.map((q) => (
-            <div key={q.questionIndex} className="rounded-lg bg-white p-4 shadow-sm">
+            <div key={q.questionIndex} className="lift-card rounded-2xl bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
                 <h4 className="font-bold">Q{q.questionIndex + 1} - {q.question}</h4>
                 <span className="text-sm font-semibold text-gray-700">{q.accuracy}%</span>
@@ -181,6 +253,7 @@ const GameReport = ({ report, quizSubject }: Props) => {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

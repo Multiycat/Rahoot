@@ -1,4 +1,4 @@
-import type { Quizz, QuizzWithId } from "@rahoot/common/types/game"
+import type { QuestionBankItem, Quizz, QuizzQuestion, QuizzWithId } from "@rahoot/common/types/game"
 import { STATUS } from "@rahoot/common/types/game/status"
 import CreateQuizz from "@rahoot/web/features/game/components/create/CreateQuizz"
 import ManagerPassword from "@rahoot/web/features/game/components/create/ManagerPassword"
@@ -17,22 +17,26 @@ import { useNavigate } from "react-router"
 type Tab = "select" | "create" | "stats"
 
 const ManagerAuthPage = () => {
-  const { setGameId, setStatus, setMusic } = useManagerStore()
+  const { setGameId, setStatus, setMusic, setTheme } = useManagerStore()
   const navigate = useNavigate()
   const { socket } = useSocket()
 
   const [isAuth, setIsAuth] = useState(false)
   const [quizzList, setQuizzList] = useState<QuizzWithId[]>([])
+  const [questionBankItems, setQuestionBankItems] = useState<QuestionBankItem[]>([])
   const [activeTab, setActiveTab] = useState<Tab>("select")
+  const [editingQuizz, setEditingQuizz] = useState<QuizzWithId | null>(null)
 
   useEvent("manager:quizzList", (quizzList) => {
     setIsAuth(true)
     setQuizzList(quizzList)
+    socket?.emit("manager:getQuestionBank")
   })
 
-  useEvent("manager:gameCreated", ({ gameId, inviteCode, music }) => {
+  useEvent("manager:gameCreated", ({ gameId, inviteCode, music, theme }) => {
     setGameId(gameId)
     setMusic(music)
+    setTheme(theme || "classic")
     setStatus(STATUS.SHOW_ROOM, {
       text: "Waiting for the players",
       inviteCode,
@@ -42,6 +46,13 @@ const ManagerAuthPage = () => {
 
   useEvent("manager:quizzSaved", (quizz) => {
     toast.success(`Quizz "${quizz.subject}" saved!`)
+    setEditingQuizz(null)
+    setActiveTab("select")
+  })
+
+  useEvent("manager:quizzUpdated", (quizz) => {
+    toast.success(`Quizz "${quizz.subject}" updated!`)
+    setEditingQuizz(null)
     setActiveTab("select")
   })
 
@@ -51,6 +62,18 @@ const ManagerAuthPage = () => {
 
   useEvent("manager:errorMessage", (message) => {
     toast.error(message)
+  })
+
+  useEvent("manager:questionBankList", (items) => {
+    setQuestionBankItems(items)
+  })
+
+  useEvent("manager:questionBankSaved", () => {
+    toast.success("Question saved to bank")
+  })
+
+  useEvent("manager:questionBankDeleted", () => {
+    toast.success("Question removed from bank")
   })
 
   const handleAuth = (password: string) => {
@@ -65,8 +88,37 @@ const ManagerAuthPage = () => {
     socket?.emit("manager:saveQuizz", quizz)
   }
 
+  const handleUpdateQuizz = (quizz: Quizz) => {
+    if (!editingQuizz) {
+      toast.error("No quizz selected")
+      return
+    }
+
+    socket?.emit("manager:updateQuizz", { quizzId: editingQuizz.id, quizz })
+  }
+
+  const handleEditQuizz = (quizzId: string) => {
+    const quizz = quizzList.find((q) => q.id === quizzId)
+
+    if (!quizz) {
+      toast.error("Quizz not found")
+      return
+    }
+
+    setEditingQuizz(quizz)
+    setActiveTab("create")
+  }
+
   const handleDeleteQuizz = (quizzId: string) => {
     socket?.emit("manager:deleteQuizz", quizzId)
+  }
+
+  const handleSaveQuestionBankItem = (question: QuizzQuestion) => {
+    socket?.emit("manager:saveQuestionBankItem", question)
+  }
+
+  const handleDeleteQuestionBankItem = (id: string) => {
+    socket?.emit("manager:deleteQuestionBankItem", id)
   }
 
   const handleExportQuizz = (quizzId: string) => {
@@ -158,6 +210,7 @@ const ManagerAuthPage = () => {
         <SelectQuizz
           quizzList={quizzList}
           onSelect={handleSelectQuizz}
+          onEdit={handleEditQuizz}
           onDelete={handleDeleteQuizz}
           onExport={handleExportQuizz}
           onImport={handleImportQuizz}
@@ -165,8 +218,16 @@ const ManagerAuthPage = () => {
       )}
       {activeTab === "create" && (
         <CreateQuizz
-          onSubmit={handleSaveQuizz}
-          onCancel={() => setActiveTab("select")}
+          onSubmit={editingQuizz ? handleUpdateQuizz : handleSaveQuizz}
+          onCancel={() => {
+            setEditingQuizz(null)
+            setActiveTab("select")
+          }}
+          initialQuizz={editingQuizz || undefined}
+          submitLabel={editingQuizz ? "Update" : "Save"}
+          questionBankItems={questionBankItems}
+          onAddToQuestionBank={handleSaveQuestionBankItem}
+          onDeleteQuestionBankItem={handleDeleteQuestionBankItem}
         />
       )}
       {activeTab === "stats" && <StatsOverview quizzList={quizzList} />}

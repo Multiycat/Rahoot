@@ -7,12 +7,13 @@ import toast from "react-hot-toast"
 type Props = {
   quizzList: QuizzWithId[]
   onSelect: (_id: string) => void
+  onEdit?: (_id: string) => void
   onDelete?: (_id: string) => void
   onExport?: (_id: string) => void
   onImport?: (_file: File) => void
 }
 
-const SelectQuizz = ({ quizzList, onSelect, onDelete, onExport, onImport }: Props) => {
+const SelectQuizz = ({ quizzList, onSelect, onEdit, onDelete, onExport, onImport }: Props) => {
   const [selected, setSelected] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -41,6 +42,11 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete, onExport, onImport }: Prop
         setSelected(null)
       }
     }
+  }
+
+  const handleEdit = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    onEdit?.(id)
   }
 
   const handleExport = () => {
@@ -111,6 +117,18 @@ const SelectQuizz = ({ quizzList, onSelect, onDelete, onExport, onImport }: Prop
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {onEdit && (
+                    <button
+                      onClick={(e) => handleEdit(e, quizz.id)}
+                      className="rounded p-1 text-blue-500 hover:bg-blue-100"
+                      title="Edit quizz"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                        <path fillRule="evenodd" d="M2 16a2 2 0 012-2h10a1 1 0 110 2H4v-1a1 1 0 00-2 0v1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
                   {onDelete && (
                     <button
                       onClick={(e) => handleDelete(e, quizz.id)}

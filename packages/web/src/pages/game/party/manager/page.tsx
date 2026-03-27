@@ -18,7 +18,7 @@ const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam }: { gameId?: string } = useParams()
   const { socket } = useSocket()
-  const { gameId, status, music, setGameId, setStatus, setPlayers, setMusic, reset } =
+  const { gameId, status, music, setGameId, setStatus, setPlayers, setMusic, setTheme, reset } =
     useManagerStore()
   const { setQuestionStates } = useQuestionStore()
 
@@ -44,14 +44,19 @@ const ManagerGamePage = () => {
 
   useEvent(
     "manager:successReconnect",
-    ({ gameId, status, players, currentQuestion, music }) => {
+    ({ gameId, status, players, currentQuestion, music, theme }) => {
       setGameId(gameId)
       setStatus(status.name, status.data)
       setPlayers(players)
       setQuestionStates(currentQuestion)
       setMusic(music)
+      setTheme(theme || "classic")
     },
   )
+
+  useEvent("game:theme", (theme) => {
+    setTheme(theme)
+  })
 
   useEvent("game:reset", (message) => {
     navigate("/manager")

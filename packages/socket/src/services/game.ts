@@ -1,4 +1,12 @@
-import { Answer, GameReport, Player, PlayerResult, QuestionResult, Quizz } from "@rahoot/common/types/game"
+import {
+  Answer,
+  GameReport,
+  Player,
+  PlayerResult,
+  QuestionResult,
+  Quizz,
+  QuizzTheme,
+} from "@rahoot/common/types/game"
 import { Server, Socket } from "@rahoot/common/types/game/socket"
 import { Status, STATUS, StatusDataMap } from "@rahoot/common/types/game/status"
 import { usernameValidator } from "@rahoot/common/validators/auth"
@@ -109,6 +117,7 @@ class Game {
       gameId: this.gameId,
       inviteCode: roomInvite,
       music: quizz.music,
+      theme: quizz.theme,
     })
 
     console.log(
@@ -172,7 +181,7 @@ class Game {
     this.io.to(this.manager.id).emit("manager:newPlayer", playerData)
     this.io.to(this.gameId).emit("game:totalPlayers", this.players.length)
 
-    socket.emit("game:successJoin", this.gameId)
+    socket.emit("game:successJoin", { gameId: this.gameId, theme: this.quizz.theme })
   }
 
   kickPlayer(socket: Socket, playerId: string) {
@@ -235,6 +244,7 @@ class Game {
       status,
       players: this.players,
       music: this.quizz.music,
+      theme: this.quizz.theme,
     })
     socket.emit("game:totalPlayers", this.players.length)
 
@@ -285,6 +295,7 @@ class Game {
         username: player.username,
         points: player.points,
       },
+      theme: this.quizz.theme,
     })
     socket.emit("game:totalPlayers", this.players.length)
     console.log(
@@ -705,6 +716,15 @@ class Game {
     })
 
     this.tempOldLeaderboard = null
+  }
+
+  setTheme(socket: Socket, theme: QuizzTheme) {
+    if (socket.id !== this.manager.id) {
+      return
+    }
+
+    this.quizz.theme = theme
+    this.io.to(this.gameId).emit("game:theme", theme)
   }
 }
 

@@ -21,6 +21,25 @@ export type QuizzMusic = {
   podium?: string      // Music played on final podium
 }
 
+export type QuizzTheme = "classic" | "sunset" | "ocean"
+
+export type QuizzQuestion = {
+  question: string
+  image?: string
+  video?: string
+  audio?: string
+  answers: string[]
+  solution: number
+  cooldown: number
+  time: number
+}
+
+export type QuestionBankItem = {
+  id: string
+  createdAt: string
+  question: QuizzQuestion
+}
+
 // Detailed player result for reports
 export type PlayerResult = {
   username: string
@@ -107,17 +126,9 @@ export type QuizzStats = {
 export type Quizz = {
   subject: string
   music?: QuizzMusic
+  theme?: QuizzTheme
   stats?: QuizzStats
-  questions: {
-    question: string
-    image?: string
-    video?: string
-    audio?: string
-    answers: string[]
-    solution: number
-    cooldown: number
-    time: number
-  }[]
+  questions: QuizzQuestion[]
 }
 
 export type QuizzWithId = Quizz & { id: string }

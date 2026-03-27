@@ -118,6 +118,73 @@ io.on("connection", (socket) => {
     }
   })
 
+  socket.on("manager:getQuestionBank", () => {
+    socket.emit("manager:questionBankList", Config.questionBank())
+  })
+
+  socket.on("manager:saveQuestionBankItem", (question) => {
+    if (!question || !question.question || !question.answers || question.answers.length < 2) {
+      socket.emit("manager:errorMessage", "Invalid question for bank")
+      return
+    }
+
+    const item = Config.saveQuestionBankItem(question)
+    socket.emit("manager:questionBankSaved", item)
+    socket.emit("manager:questionBankList", Config.questionBank())
+  })
+
+  socket.on("manager:deleteQuestionBankItem", (id) => {
+    const deleted = Config.deleteQuestionBankItem(id)
+
+    if (!deleted) {
+      socket.emit("manager:errorMessage", "Question bank item not found")
+      return
+    }
+
+    socket.emit("manager:questionBankDeleted", id)
+    socket.emit("manager:questionBankList", Config.questionBank())
+  })
+
+  socket.on("manager:updateQuizz", ({ quizzId, quizz }) => {
+    if (!quizzId) {
+      socket.emit("manager:errorMessage", "Invalid quizz id")
+      return
+    }
+
+    if (!quizz || !quizz.subject || !quizz.questions || quizz.questions.length === 0) {
+      socket.emit("manager:errorMessage", "Invalid quizz data")
+      return
+    }
+
+    for (const question of quizz.questions) {
+      if (!question.question || !question.answers || question.answers.length < 2) {
+        socket.emit("manager:errorMessage", "Invalid question data")
+        return
+      }
+      if (question.solution < 0 || question.solution >= question.answers.length) {
+        socket.emit("manager:errorMessage", "Invalid solution index")
+        return
+      }
+    }
+
+    try {
+      const updatedQuizz = Config.updateQuizz(quizzId, quizz)
+
+      if (!updatedQuizz) {
+        socket.emit("manager:errorMessage", "Quizz not found")
+        return
+      }
+
+      socket.emit("manager:quizzUpdated", updatedQuizz)
+      socket.emit("manager:quizzList", Config.quizz())
+
+      console.log(`Quizz updated: ${quizz.subject} (${quizzId})`)
+    } catch (error) {
+      console.error("Failed to update quizz:", error)
+      socket.emit("manager:errorMessage", "Failed to update quizz")
+    }
+  })
+
   socket.on("manager:deleteQuizz", (quizzId) => {
     try {
       const deleted = Config.deleteQuizz(quizzId)
@@ -187,6 +254,10 @@ io.on("connection", (socket) => {
 
   socket.on("manager:showLeaderboard", ({ gameId }) =>
     withGame(gameId, socket, (game) => game.showLeaderboard()),
+  )
+
+  socket.on("manager:setQuizzTheme", ({ gameId, theme }) =>
+    withGame(gameId, socket, (game) => game.setTheme(socket, theme)),
   )
 
   socket.on("disconnect", () => {
