@@ -1,122 +1,150 @@
-import { Server } from "@rahoot/common/types/game/socket"
-import { inviteCodeValidator } from "@rahoot/common/validators/auth"
-import Config from "@rahoot/socket/services/config"
-import Game from "@rahoot/socket/services/game"
-import Registry from "@rahoot/socket/services/registry"
-import { withGame } from "@rahoot/socket/utils/game"
-import { Server as ServerIO } from "socket.io"
+import { Server } from "@rahoot/common/types/game/socket";
+import { inviteCodeValidator } from "@rahoot/common/validators/auth";
+import Config from "@rahoot/socket/services/config";
+import Game from "@rahoot/socket/services/game";
+import Registry from "@rahoot/socket/services/registry";
+import { withGame } from "@rahoot/socket/utils/game";
+import { Server as ServerIO } from "socket.io";
 
-const WS_PORT = 3001
+const WS_PORT = 3003;
 
 const io: Server = new ServerIO({
+  cors: {
+    origin: "https://rahoot.multiycat.fr",
+    credentials: true,
+  },
   path: "/ws",
   maxHttpBufferSize: 10 * 1024 * 1024, // 10MB to allow large audio files in base64
-})
-Config.init()
+});
+Config.init();
 
-const registry = Registry.getInstance()
+const registry = Registry.getInstance();
 
-console.log(`Socket server running on port ${WS_PORT}`)
-io.listen(WS_PORT)
+console.log(`Socket server running on port ${WS_PORT}`);
+io.listen(WS_PORT);
 
 io.on("connection", (socket) => {
   console.log(
     `A user connected: socketId: ${socket.id}, clientId: ${socket.handshake.auth.clientId}`,
-  )
+  );
 
   socket.on("player:reconnect", ({ gameId }) => {
-    const game = registry.getPlayerGame(gameId, socket.handshake.auth.clientId)
+    const game = registry.getPlayerGame(gameId, socket.handshake.auth.clientId);
 
     if (game) {
-      game.reconnect(socket)
+      game.reconnect(socket);
 
-      return
+      return;
     }
 
-    socket.emit("game:reset", "Game not found")
-  })
+    socket.emit("game:reset", "Game not found");
+  });
 
   socket.on("manager:reconnect", ({ gameId }) => {
-    const game = registry.getManagerGame(gameId, socket.handshake.auth.clientId)
+    const game = registry.getManagerGame(
+      gameId,
+      socket.handshake.auth.clientId,
+    );
 
     if (game) {
-      game.reconnect(socket)
+      game.reconnect(socket);
 
-      return
+      return;
     }
 
-    socket.emit("game:reset", "Game expired")
-  })
+    socket.emit("game:reset", "Game expired");
+  });
 
   socket.on("manager:auth", (password) => {
     try {
-      const config = Config.game()
+      const config = Config.game();
 
       if (config.managerPassword === "PASSWORD") {
-        socket.emit("manager:errorMessage", "Manager password is not configured")
+        socket.emit(
+          "manager:errorMessage",
+          "Manager password is not configured",
+        );
 
-        return
+        return;
       }
 
       if (password !== config.managerPassword) {
-        socket.emit("manager:errorMessage", "Invalid password")
+        socket.emit("manager:errorMessage", "Invalid password");
 
-        return
+        return;
       }
 
-      socket.emit("manager:quizzList", Config.quizz())
+      socket.emit("manager:quizzList", Config.quizz());
     } catch (error) {
-      console.error("Failed to read game config:", error)
-      socket.emit("manager:errorMessage", "Failed to read game config")
+      console.error("Failed to read game config:", error);
+      socket.emit("manager:errorMessage", "Failed to read game config");
     }
-  })
+  });
 
   socket.on("game:create", (quizzId) => {
-    const quizzList = Config.quizz()
-    const quizz = quizzList.find((q) => q.id === quizzId)
+    const quizzList = Config.quizz();
+    const quizz = quizzList.find((q) => q.id === quizzId);
 
     if (!quizz) {
-      socket.emit("game:errorMessage", "Quizz not found")
+      socket.emit("game:errorMessage", "Quizz not found");
 
-      return
+      return;
     }
 
-    const game = new Game(io, socket, quizz, quizzId)
-    registry.addGame(game)
-  })
+    const game = new Game(io, socket, quizz, quizzId);
+    registry.addGame(game);
+  });
 
   socket.on("manager:saveQuizz", (quizz) => {
     // Validate the quizz
-    if (!quizz || !quizz.subject || !quizz.questions || quizz.questions.length === 0) {
-      socket.emit("manager:errorMessage", "Invalid quizz data")
-      return
+    if (
+      !quizz ||
+      !quizz.subject ||
+      !quizz.questions ||
+      quizz.questions.length === 0
+    ) {
+      socket.emit("manager:errorMessage", "Invalid quizz data");
+
+      return;
     }
 
     // Validate each question
     for (const question of quizz.questions) {
-      if (!question.question || !question.answers || question.answers.length < 2) {
-        socket.emit("manager:errorMessage", "Invalid question data")
-        return
+      if (
+        !question.question ||
+        !question.answers ||
+        question.answers.length < 2
+      ) {
+        socket.emit("manager:errorMessage", "Invalid question data");
+
+        return;
       }
-      if (question.solution < 0 || question.solution >= question.answers.length) {
-        socket.emit("manager:errorMessage", "Invalid solution index")
-        return
+
+      if (
+        question.solution < 0 ||
+        question.solution >= question.answers.length
+      ) {
+        socket.emit("manager:errorMessage", "Invalid solution index");
+
+        return;
       }
     }
 
     try {
-      const savedQuizz = Config.saveQuizz(quizz)
-      socket.emit("manager:quizzSaved", savedQuizz)
-      
+      const savedQuizz = Config.saveQuizz(quizz);
+      socket.emit("manager:quizzSaved", savedQuizz);
+
       // Also send updated quizz list
-      socket.emit("manager:quizzList", Config.quizz())
-      
-      console.log(`Quizz saved: ${quizz.subject} with ${quizz.questions.length} questions`)
+      socket.emit("manager:quizzList", Config.quizz());
+
+      console.log(
+        `Quizz saved: ${quizz.subject} with ${quizz.questions.length} questions`,
+      );
     } catch (error) {
-      console.error("Failed to save quizz:", error)
-      socket.emit("manager:errorMessage", "Failed to save quizz")
+      console.error("Failed to save quizz:", error);
+      socket.emit("manager:errorMessage", "Failed to save quizz");
     }
-  })
+  });
 
   socket.on("manager:getQuestionBank", () => {
     socket.emit("manager:questionBankList", Config.questionBank())
@@ -187,132 +215,133 @@ io.on("connection", (socket) => {
 
   socket.on("manager:deleteQuizz", (quizzId) => {
     try {
-      const deleted = Config.deleteQuizz(quizzId)
-      
+      const deleted = Config.deleteQuizz(quizzId);
+
       if (!deleted) {
-        socket.emit("manager:errorMessage", "Quizz not found")
-        return
+        socket.emit("manager:errorMessage", "Quizz not found");
+
+        return;
       }
-      
-      socket.emit("manager:quizzDeleted", quizzId)
-      
+
+      socket.emit("manager:quizzDeleted", quizzId);
+
       // Also send updated quizz list
-      socket.emit("manager:quizzList", Config.quizz())
-      
-      console.log(`Quizz deleted: ${quizzId}`)
+      socket.emit("manager:quizzList", Config.quizz());
+
+      console.log(`Quizz deleted: ${quizzId}`);
     } catch (error) {
-      console.error("Failed to delete quizz:", error)
-      socket.emit("manager:errorMessage", "Failed to delete quizz")
+      console.error("Failed to delete quizz:", error);
+      socket.emit("manager:errorMessage", "Failed to delete quizz");
     }
-  })
+  });
 
   socket.on("player:join", (inviteCode) => {
-    const result = inviteCodeValidator.safeParse(inviteCode)
+    const result = inviteCodeValidator.safeParse(inviteCode);
 
     if (result.error) {
-      socket.emit("game:errorMessage", result.error.issues[0].message)
+      socket.emit("game:errorMessage", result.error.issues[0].message);
 
-      return
+      return;
     }
 
-    const game = registry.getGameByInviteCode(inviteCode)
+    const game = registry.getGameByInviteCode(inviteCode);
 
     if (!game) {
-      socket.emit("game:errorMessage", "Game not found")
+      socket.emit("game:errorMessage", "Game not found");
 
-      return
+      return;
     }
 
-    socket.emit("game:successRoom", game.gameId)
-  })
+    socket.emit("game:successRoom", game.gameId);
+  });
 
   socket.on("player:login", ({ gameId, data }) =>
     withGame(gameId, socket, (game) => game.join(socket, data.username)),
-  )
+  );
 
   socket.on("manager:kickPlayer", ({ gameId, playerId }) =>
     withGame(gameId, socket, (game) => game.kickPlayer(socket, playerId)),
-  )
+  );
 
   socket.on("manager:startGame", ({ gameId }) =>
     withGame(gameId, socket, (game) => game.start(socket)),
-  )
+  );
 
   socket.on("player:selectedAnswer", ({ gameId, data }) =>
     withGame(gameId, socket, (game) =>
       game.selectAnswer(socket, data.answerKey),
     ),
-  )
+  );
 
   socket.on("manager:abortQuiz", ({ gameId }) =>
     withGame(gameId, socket, (game) => game.abortRound(socket)),
-  )
+  );
 
   socket.on("manager:nextQuestion", ({ gameId }) =>
     withGame(gameId, socket, (game) => game.nextRound(socket)),
-  )
+  );
 
   socket.on("manager:showLeaderboard", ({ gameId }) =>
     withGame(gameId, socket, (game) => game.showLeaderboard()),
-  )
+  );
 
   socket.on("manager:setQuizzTheme", ({ gameId, theme }) =>
     withGame(gameId, socket, (game) => game.setTheme(socket, theme)),
   )
 
   socket.on("disconnect", () => {
-    console.log(`A user disconnected : ${socket.id}`)
+    console.log(`A user disconnected : ${socket.id}`);
 
-    const managerGame = registry.getGameByManagerSocketId(socket.id)
+    const managerGame = registry.getGameByManagerSocketId(socket.id);
 
     if (managerGame) {
-      managerGame.manager.connected = false
-      registry.markGameAsEmpty(managerGame)
+      managerGame.manager.connected = false;
+      registry.markGameAsEmpty(managerGame);
 
       if (!managerGame.started) {
-        console.log("Reset game (manager disconnected)")
-        managerGame.abortCooldown()
-        io.to(managerGame.gameId).emit("game:reset", "Manager disconnected")
-        registry.removeGame(managerGame.gameId)
+        console.log("Reset game (manager disconnected)");
+        managerGame.abortCooldown();
+        io.to(managerGame.gameId).emit("game:reset", "Manager disconnected");
+        registry.removeGame(managerGame.gameId);
 
-        return
+        return;
       }
     }
 
-    const game = registry.getGameByPlayerSocketId(socket.id)
+    const game = registry.getGameByPlayerSocketId(socket.id);
 
     if (!game) {
-      return
+      return;
     }
 
-    const player = game.players.find((p) => p.id === socket.id)
+    const player = game.players.find((p) => p.id === socket.id);
 
     if (!player) {
-      return
+      return;
     }
 
     if (!game.started) {
-      game.players = game.players.filter((p) => p.id !== socket.id)
+      game.players = game.players.filter((p) => p.id !== socket.id);
 
-      io.to(game.manager.id).emit("manager:removePlayer", player.id)
-      io.to(game.gameId).emit("game:totalPlayers", game.players.length)
+      io.to(game.manager.id).emit("manager:removePlayer", player.id);
+      io.to(game.gameId).emit("game:totalPlayers", game.players.length);
 
-      console.log(`Removed player ${player.username} from game ${game.gameId}`)
+      console.log(`Removed player ${player.username} from game ${game.gameId}`);
 
-      return
+      return;
     }
 
-    player.connected = false
-    io.to(game.gameId).emit("game:totalPlayers", game.players.length)
-  })
-})
+    player.connected = false;
+    io.to(game.gameId).emit("game:totalPlayers", game.players.length);
+  });
+});
 
 process.on("SIGINT", () => {
-  Registry.getInstance().cleanup()
-  process.exit(0)
-})
+  Registry.getInstance().cleanup();
+  process.exit(0);
+});
 
 process.on("SIGTERM", () => {
-  Registry.getInstance().cleanup()
-  process.exit(0)
-})
+  Registry.getInstance().cleanup();
+  process.exit(0);
+});
