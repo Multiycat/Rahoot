@@ -10,7 +10,7 @@ const WS_PORT = 3003;
 
 const io: Server = new ServerIO({
   cors: {
-    origin: "http://84.54.32.59:8008",
+    origin: "https://rahoot.multiycat.fr",
     credentials: true,
   },
   path: "/ws",
