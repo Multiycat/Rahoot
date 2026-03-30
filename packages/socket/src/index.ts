@@ -8,9 +8,16 @@ import { Server as ServerIO } from "socket.io";
 
 const WS_PORT = 3003;
 
+// Get allowed origin from environment or use default
+const ALLOWED_ORIGINS = [
+  "https://rahoot.multiycat.fr",
+  "http://localhost:8008",
+  "http://localhost:3000",
+];
+
 const io: Server = new ServerIO({
   cors: {
-    origin: "*",
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   },
   path: "/ws",
