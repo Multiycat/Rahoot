@@ -22,7 +22,7 @@ const io: Server = new ServerIO({
     credentials: true,
   },
   path: "/ws",
-  maxHttpBufferSize: 10 * 1024 * 1024, // 10MB to allow large audio files in base64
+  maxHttpBufferSize: 100 * 1024 * 1024, // 100MB to allow large audio files in base64
 });
 Config.init();
 
