@@ -65,7 +65,7 @@ const Answers = ({
     return () => {
       stopMusic()
     }
-  }, [playMusic])
+  }, [playMusic, stopMusic, video, audio])
 
   useEvent("game:cooldown", (sec) => {
     setCooldown(sec)
