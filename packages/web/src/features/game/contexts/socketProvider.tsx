@@ -64,7 +64,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     let socketClient: TypedSocket | null = null;
 
     try {
-      socketClient = io("https://api.rahoot.multiycat.fr", {
+      socketClient = io({
         path: "/ws",
         autoConnect: false,
         reconnection: true,

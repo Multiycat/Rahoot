@@ -32,6 +32,7 @@ export type QuizzQuestion = {
   solution: number
   cooldown: number
   time: number
+  pointsMultiplier?: number  // 1 (normal), 2 (double), 3 (triple), default is 1
 }
 
 export type QuestionBankItem = {

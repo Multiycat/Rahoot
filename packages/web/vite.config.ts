@@ -18,6 +18,7 @@ export default defineConfig({
     proxy: {
       "/ws": {
         target: "http://84.54.32.59:3003",
+        changeOrigin: true,
         ws: true,
       },
     },

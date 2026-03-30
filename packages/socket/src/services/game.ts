@@ -512,7 +512,7 @@ class Game {
     this.round.playersAnswers.push({
       playerId: player.id,
       answerId,
-      points: timeToPoint(this.round.startTime, question.time),
+      points: timeToPoint(this.round.startTime, question.time, question.pointsMultiplier || 1),
       // @ts-ignore - we add responseTime for tracking
       responseTime: Date.now() - this.round.startTime,
       username: player.username,

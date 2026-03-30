@@ -34,6 +34,7 @@ const emptyQuestion: Question = {
   solution: 0,
   cooldown: 5,
   time: 20,
+  pointsMultiplier: 1,
 }
 
 const emptyMusic: QuizzMusic = {
@@ -256,6 +257,11 @@ const CreateQuizz = ({
               <span className="truncate text-xs">
                 {q.question || "New question"}
               </span>
+              {q.pointsMultiplier && q.pointsMultiplier > 1 && (
+                <span className="ml-auto shrink-0 rounded bg-orange-500/50 px-1.5 py-0.5 text-xs font-bold text-orange-200">
+                  {q.pointsMultiplier}x
+                </span>
+              )}
             </div>
             
             {/* Question actions */}
@@ -517,6 +523,29 @@ const CreateQuizz = ({
                 )}
               >
                 {cooldown}s
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Points Multiplier */}
+        <div>
+          <label className="mb-2 block text-xs font-medium text-gray-400">
+            Points Multiplier
+          </label>
+          <div className="grid grid-cols-3 gap-1">
+            {[1, 2, 3].map((multiplier) => (
+              <button
+                key={multiplier}
+                onClick={() => updateQuestion({ pointsMultiplier: multiplier })}
+                className={clsx(
+                  "rounded py-2 text-xs font-medium transition-colors",
+                  (currentQuestion.pointsMultiplier || 1) === multiplier
+                    ? "bg-orange-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                )}
+              >
+                {multiplier}x
               </button>
             ))}
           </div>

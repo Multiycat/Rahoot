@@ -38,13 +38,13 @@ export const createInviteCode = (length = 6) => {
   return result
 }
 
-export const timeToPoint = (startTime: number, secondes: number): number => {
-  let points = 1000
+export const timeToPoint = (startTime: number, secondes: number, multiplier: number = 1): number => {
+  let points = 1000 * multiplier
 
   const actualTime = Date.now()
   const tempsPasseEnSecondes = (actualTime - startTime) / 1000
 
-  points -= (1000 / secondes) * tempsPasseEnSecondes
+  points -= (1000 / secondes) * tempsPasseEnSecondes * multiplier
   points = Math.max(0, points)
 
   return points
