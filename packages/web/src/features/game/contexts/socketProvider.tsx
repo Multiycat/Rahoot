@@ -64,7 +64,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     let socketClient: TypedSocket | null = null;
 
     try {
-      socketClient = io({
+      const socketUrl = process.env.REACT_APP_SOCKET_URL || 
+        (process.env.NODE_ENV === 'production' 
+          ? 'https://api.rahoot.multiycat.fr' 
+          : 'http://localhost:3003');
+
+      socketClient = io(socketUrl, {
         path: "/ws",
         autoConnect: false,
         reconnection: true,

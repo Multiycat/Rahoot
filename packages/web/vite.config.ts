@@ -17,7 +17,7 @@ export default defineConfig({
     host: "0.0.0.0",
     proxy: {
       "/ws": {
-        target: "http://84.54.32.59:3003",
+        target: "https://api.rahoot.multiycat.fr",
         changeOrigin: true,
         ws: true,
       },
