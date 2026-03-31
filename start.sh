@@ -11,6 +11,11 @@ chmod -R 777 /tmp/nginx
 mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs 2>/dev/null || true
 chmod -R 777 /var/lib/nginx 2>/dev/null || true
 
+# Créer le répertoire pnpm
+mkdir -p /tmp/pnpm-store
+export PNPM_HOME="/tmp/pnpm-store"
+export PATH="$PNPM_HOME:$PATH"
+
 echo "=== Pulling latest changes from GitHub ==="
 
 # Configurer Git
@@ -32,7 +37,7 @@ echo "=== Building application from latest code ==="
 
 # Installer les dépendances
 echo "Installing dependencies..."
-pnpm install
+pnpm install --frozen-lockfile
 
 # Compiler l'application
 echo "Building..."
