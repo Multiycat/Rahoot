@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "=== Rahoot startup ==="
@@ -10,6 +10,10 @@ chmod -R 777 /tmp/nginx
 # Essayer de créer les dossiers dans /var/lib/nginx aussi (peut échouer si read-only)
 mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs 2>/dev/null || true
 chmod -R 777 /var/lib/nginx 2>/dev/null || true
+
+# Créer le répertoire config dans /tmp (writable)
+mkdir -p /tmp/config/quizz
+chmod -R 777 /tmp/config
 
 echo "=== Checking for updates from GitHub ==="
 
@@ -26,28 +30,22 @@ cd "$UPDATE_DIR"
 if ! git clone --depth 1 https://github.com/Multiycat/rahoot.git . 2>/dev/null; then
   echo "Failed to clone, skipping update"
 else
-  # Copier les fichiers compilés vers /app
-  echo "Updating application files..."
+  echo "Checking for updated source files..."
+
+  # Copier les fichiers source s'ils existent
+  # Note: Le répertoire dist n'existe pas dans le repo, donc on copie juste les sources
+  # Pour les mises à jour en production, il faudrait soit:
+  # 1. Reconstruire avec pnpm (trop lourd pour le runtime)
+  # 2. Avoir les dist pré-compilés dans le repo
   
-  # Nettoyer l'espace avant de copier
-  rm -rf /app/packages/web/dist
-  rm -rf /app/packages/socket/dist
-  rm -rf /app/config
-  
-  # Copier les nouveaux fichiers
-  mkdir -p /app/packages/web/dist
-  mkdir -p /app/packages/socket/dist
-  mkdir -p /app/config
-  
-  cp -r ./packages/web/dist/* /app/packages/web/dist/ 2>/dev/null || true
-  cp -r ./packages/socket/dist/* /app/packages/socket/dist/ 2>/dev/null || true
-  cp -r ./config/* /app/config/ 2>/dev/null || true
-  
-  echo "Application files updated"
+  cp -r ./config/* /tmp/config/ 2>/dev/null || true
+  echo "Config files checked"
 fi
 
+cd /app
+
 # Nettoyer les fichiers temporaires
-rm -rf "$UPDATE_DIR"
+rm -rf "$UPDATE_DIR" 2>/dev/null || true
 
 echo "=== Application ready ==="
 

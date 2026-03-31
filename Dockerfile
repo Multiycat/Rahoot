@@ -23,7 +23,7 @@ RUN apk add --no-cache git && \
 # ---- RUNNER ----  #
 #####################
 FROM alpine:3.21 AS runner
-RUN apk add --no-cache nginx nodejs npm supervisor
+RUN apk add --no-cache nginx nodejs npm supervisor git
 
 # Copier les configs nginx et supervisor
 COPY docker/nginx-main.conf       /etc/nginx/nginx.conf
@@ -37,7 +37,9 @@ RUN mkdir -p /tmp/nginx/tmp /tmp/nginx/logs \
 # Copier les fichiers compilés depuis le builder
 COPY --from=builder /build/packages/web/dist           /app/packages/web/dist
 COPY --from=builder /build/packages/socket/dist        /app/packages/socket/dist
-COPY --from=builder /build/config                       /app/config
+
+# Créer le répertoire config s'il n'existe pas (il sera peuplé à l'exécution)
+RUN mkdir -p /app/config/quizz
 
 # Copier et rendre exécutable le script de démarrage
 COPY start.sh /app/start.sh
@@ -45,5 +47,5 @@ RUN chmod +x /app/start.sh
 
 WORKDIR /app
 EXPOSE 8008
-CMD ["/bin/bash", "/app/start.sh"]
+CMD ["/bin/sh", "/app/start.sh"]
 
