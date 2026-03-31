@@ -18,6 +18,14 @@ const FeedbackResults = () => {
     setFeedbackList((prev) => [...prev, data])
   })
 
+  // Reset feedback when the game moves to finished state
+  useEvent("game:status", (data) => {
+    if (data.name === "FINISHED") {
+      setFeedbackList([])
+      setIsOpen(false)
+    }
+  })
+
   const closeFeedback = () => {
     if (!gameId) return
     socket?.emit("manager:closeFeedback", {
