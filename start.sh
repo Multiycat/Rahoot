@@ -17,23 +17,16 @@ echo "=== Pulling latest changes from GitHub ==="
 git config --global user.name "Rahoot Bot"
 git config --global user.email "bot@rahoot.local"
 
-# Aller dans le répertoire d'application
-chmod -R 777 /app 2>/dev/null || true
-cd /app
+# Utiliser /tmp pour le code (writable)
+WORK_DIR="/tmp/rahoot-app"
 
-# Initialiser le repo si ce n'est pas déjà fait
-if [ ! -d .git ]; then
-  echo "Initializing git repository..."
-  git init
-  git remote add origin https://github.com/Multiycat/rahoot.git
-  echo "Fetching initial code from GitHub..."
-  git fetch origin main
-  git checkout -b main origin/main || git reset --hard origin/main
-else
-  echo "Updating existing repository..."
-  git fetch origin main
-  git reset --hard origin/main
-fi
+# Supprimer et recréer le répertoire de travail
+rm -rf "$WORK_DIR"
+mkdir -p "$WORK_DIR"
+cd "$WORK_DIR"
+
+echo "Cloning repository from GitHub..."
+git clone https://github.com/Multiycat/rahoot.git .
 
 echo "=== Building application from latest code ==="
 
@@ -46,6 +39,21 @@ echo "Building..."
 pnpm run build
 
 echo "=== Build completed successfully ==="
+
+# Supprimer l'ancien contenu de /app et créer des symlinks
+echo "Setting up application directories..."
+rm -rf /app/* 2>/dev/null || true
+
+# Copier les fichiers compilés vers /app
+mkdir -p /app/packages/web/dist
+mkdir -p /app/packages/socket/dist
+mkdir -p /app/config
+
+cp -r "$WORK_DIR/packages/web/dist"/* /app/packages/web/dist/ 2>/dev/null || true
+cp -r "$WORK_DIR/packages/socket/dist"/* /app/packages/socket/dist/ 2>/dev/null || true
+cp -r "$WORK_DIR/config"/* /app/config/ 2>/dev/null || true
+
+echo "Application ready at /app"
 
 # Lancer supervisord
 echo "Starting supervisord..."
