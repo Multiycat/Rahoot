@@ -12,7 +12,7 @@ import { Status, STATUS, StatusDataMap } from "@rahoot/common/types/game/status"
 import { usernameValidator } from "@rahoot/common/validators/auth"
 import Config from "@rahoot/socket/services/config"
 import Registry from "@rahoot/socket/services/registry"
-import { createInviteCode, timeToPoint } from "@rahoot/socket/utils/game"
+import { createInviteCode, timeToPoint, shuffleQuestionAnswers } from "@rahoot/socket/utils/game"
 import sleep from "@rahoot/socket/utils/sleep"
 import { v4 as uuid } from "uuid"
 
@@ -63,6 +63,9 @@ class Game {
 
   // Store all answers for report generation
   allAnswers: Map<number, DetailedAnswer[]>  // questionIndex -> answers
+  
+  // Store shuffled questions if shuffleAnswers is enabled
+  shuffledQuestions: Map<number, typeof this.quizz.questions[0]>  // questionIndex -> shuffled question
 
   constructor(io: Server, socket: Socket, quizz: Quizz, quizzId: string) {
     if (!io) {
@@ -102,6 +105,7 @@ class Game {
     }
 
     this.allAnswers = new Map()
+    this.shuffledQuestions = new Map()
 
     const roomInvite = createInviteCode()
     this.inviteCode = roomInvite
@@ -363,10 +367,19 @@ class Game {
   }
 
   async newRound() {
-    const question = this.quizz.questions[this.round.currentQuestion]
+    let question = this.quizz.questions[this.round.currentQuestion]
 
     if (!this.started) {
       return
+    }
+
+    // Shuffle answers if enabled and not already shuffled
+    if (this.quizz.shuffleAnswers && !this.shuffledQuestions.has(this.round.currentQuestion)) {
+      question = shuffleQuestionAnswers(question)
+      this.shuffledQuestions.set(this.round.currentQuestion, question)
+    } else if (this.quizz.shuffleAnswers) {
+      // Use previously shuffled question
+      question = this.shuffledQuestions.get(this.round.currentQuestion)!
     }
 
     this.playerStatus.clear()

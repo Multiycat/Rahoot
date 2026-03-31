@@ -129,6 +129,7 @@ export type Quizz = {
   music?: QuizzMusic
   theme?: QuizzTheme
   stats?: QuizzStats
+  shuffleAnswers?: boolean  // Enable/disable answer shuffling for this quiz
   questions: QuizzQuestion[]
 }
 
