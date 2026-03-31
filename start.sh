@@ -3,6 +3,11 @@ set -e
 
 echo "=== Rahoot startup ==="
 
+# Nettoyer les anciens fichiers pour libérer de l'espace
+echo "Cleaning up old files..."
+rm -rf /tmp/rahoot-app 2>/dev/null || true
+rm -rf /tmp/pnpm-store 2>/dev/null || true
+
 # Créer les dossiers temporaires pour Nginx
 mkdir -p /tmp/nginx/tmp /tmp/nginx/logs
 chmod -R 777 /tmp/nginx
@@ -11,7 +16,7 @@ chmod -R 777 /tmp/nginx
 mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs 2>/dev/null || true
 chmod -R 777 /var/lib/nginx 2>/dev/null || true
 
-# Créer le répertoire pnpm
+# Créer le répertoire pnpm dans un endroit avec plus d'espace
 mkdir -p /tmp/pnpm-store
 export PNPM_HOME="/tmp/pnpm-store"
 export PATH="$PNPM_HOME:$PATH"
@@ -25,17 +30,16 @@ git config --global user.email "bot@rahoot.local"
 # Utiliser /tmp pour le code (writable)
 WORK_DIR="/tmp/rahoot-app"
 
-# Supprimer et recréer le répertoire de travail
-rm -rf "$WORK_DIR"
+# Créer le répertoire de travail
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
 echo "Cloning repository from GitHub..."
-git clone https://github.com/Multiycat/rahoot.git .
+git clone --depth 1 https://github.com/Multiycat/rahoot.git .
 
 echo "=== Building application from latest code ==="
 
-# Installer les dépendances
+# Installer les dépendances (sans cache pour économiser l'espace)
 echo "Installing dependencies..."
 pnpm install --frozen-lockfile
 
@@ -43,9 +47,14 @@ pnpm install --frozen-lockfile
 echo "Building..."
 pnpm run build
 
+# Nettoyer les node_modules après la compilation pour libérer de l'espace
+echo "Cleaning up after build..."
+rm -rf "$WORK_DIR/node_modules" 2>/dev/null || true
+rm -rf "$WORK_DIR/packages/*/node_modules" 2>/dev/null || true
+
 echo "=== Build completed successfully ==="
 
-# Supprimer l'ancien contenu de /app et créer des symlinks
+# Supprimer l'ancien contenu de /app
 echo "Setting up application directories..."
 rm -rf /app/* 2>/dev/null || true
 
@@ -57,6 +66,9 @@ mkdir -p /app/config
 cp -r "$WORK_DIR/packages/web/dist"/* /app/packages/web/dist/ 2>/dev/null || true
 cp -r "$WORK_DIR/packages/socket/dist"/* /app/packages/socket/dist/ 2>/dev/null || true
 cp -r "$WORK_DIR/config"/* /app/config/ 2>/dev/null || true
+
+# Nettoyer le répertoire de travail
+rm -rf "$WORK_DIR" 2>/dev/null || true
 
 echo "Application ready at /app"
 
