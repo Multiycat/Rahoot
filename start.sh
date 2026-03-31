@@ -3,9 +3,13 @@ set -e
 
 echo "=== Rahoot startup ==="
 
-# Créer les dossiers manquants pour Nginx et donner les droits
+# Créer les dossiers manquants pour Nginx dans /tmp (qui est toujours writable)
+mkdir -p /tmp/nginx/tmp /tmp/nginx/logs
+chmod -R 777 /tmp/nginx
+
+# Essayer de créer les dossiers dans /var/lib/nginx aussi (peut échouer si read-only)
 mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs
-chmod -R 777 /var/lib/nginx
+chmod -R 777 /var/lib/nginx 2>/dev/null || true
 
 # Mettre à jour le code depuis Git
 echo "Pulling latest changes from Git..."
