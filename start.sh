@@ -17,22 +17,22 @@ echo "=== Pulling latest changes from GitHub ==="
 git config --global user.name "Rahoot Bot"
 git config --global user.email "bot@rahoot.local"
 
-# Aller dans le répertoire d'application
-cd /app
+# Utiliser /tmp pour le code (writable)
+WORK_DIR="/tmp/rahoot"
+mkdir -p "$WORK_DIR"
+cd "$WORK_DIR"
 
-# Initialiser le repo si ce n'est pas déjà fait
+# Cloner ou mettre à jour le repo
 if [ ! -d .git ]; then
-  echo "Initializing git repository..."
-  git init
-  git remote add origin https://github.com/Multiycat/rahoot.git
+  echo "Cloning repository from GitHub..."
+  git clone https://github.com/Multiycat/rahoot.git .
+else
+  echo "Updating repository..."
+  git fetch origin main
+  git reset --hard origin/main
 fi
 
-# Pull les derniers changements
-echo "Fetching latest changes..."
-git fetch origin main
-git pull
-
-echo "=== Building application from latest code ==="
+echo "=== Building application ==="
 
 # Installer les dépendances
 echo "Installing dependencies..."
