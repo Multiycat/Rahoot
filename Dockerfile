@@ -43,4 +43,4 @@ COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 EXPOSE 8008
-ENTRYPOINT ["/app/start.sh"]
+CMD ["/bin/bash", "/app/start.sh"]
