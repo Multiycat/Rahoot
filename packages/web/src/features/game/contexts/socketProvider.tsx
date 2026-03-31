@@ -63,11 +63,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     let socketClient: TypedSocket | null = null;
 
-    try {
-      const socketUrl = process.env.REACT_APP_SOCKET_URL || 
-        (process.env.NODE_ENV === 'production' 
-          ? 'https://api.rahoot.multiycat.fr' 
-          : 'http://localhost:3003');
+     try {
+       const socketUrl = import.meta.env.VITE_SOCKET_URL || 
+         (import.meta.env.MODE === 'production' 
+           ? 'https://api.rahoot.multiycat.fr' 
+           : 'http://localhost:3003');
 
       socketClient = io(socketUrl, {
         path: "/ws",

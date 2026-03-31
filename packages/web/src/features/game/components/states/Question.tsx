@@ -1,4 +1,5 @@
 import type { CommonStatusDataMap } from "@rahoot/common/types/game/status"
+import { useQuestionStore } from "@rahoot/web/features/game/stores/question"
 import { SFX_SHOW_SOUND } from "@rahoot/web/features/game/utils/constants"
 import { useEffect } from "react"
 import useSound from "use-sound"
@@ -8,11 +9,30 @@ type Props = {
 }
 
 const Question = ({ data: { question, image, cooldown } }: Props) => {
+  const { questionMusic } = useQuestionStore()
   const [sfxShow] = useSound(SFX_SHOW_SOUND, { volume: 0.5 })
+  const [playMusic, { stop: stopMusic }] = useSound(questionMusic || "", {
+    volume: 0.2,
+    interrupt: true,
+    loop: true,
+  })
 
   useEffect(() => {
     sfxShow()
   }, [sfxShow])
+
+  // Play the question music if available
+  useEffect(() => {
+    if (questionMusic) {
+      playMusic()
+      return () => {
+        stopMusic()
+      }
+    } else {
+      // Stop music if it becomes undefined
+      stopMusic()
+    }
+  }, [questionMusic, playMusic, stopMusic])
 
   return (
     <section className="relative mx-auto flex h-full w-full max-w-7xl flex-1 flex-col items-center px-4">

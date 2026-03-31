@@ -137,4 +137,5 @@ export type QuizzWithId = Quizz & { id: string }
 export type GameUpdateQuestion = {
   current: number
   total: number
+  music?: string  // Optional music URL from quizz configuration
 }

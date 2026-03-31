@@ -25,6 +25,7 @@ export type CommonStatusDataMap = {
     image?: string
     video?: string
     audio?: string
+    music?: string  // Custom background music for this question
     time: number
     totalPlayer: number
   }

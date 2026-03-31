@@ -30,16 +30,19 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
   const { isConnected } = useSocket()
   const { theme: managerTheme } = useManagerStore()
   const { theme: playerTheme } = usePlayerStore()
+  const { music: configMusic } = useManagerStore()
   const { player } = usePlayerStore()
-  const { questionStates, setQuestionStates } = useQuestionStore()
+  const { questionStates, setQuestionStates, setQuestionMusic } = useQuestionStore()
   const [isDisabled, setIsDisabled] = useState(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
 
-  useEvent("game:updateQuestion", ({ current, total }) => {
+  useEvent("game:updateQuestion", (data: any) => {
     setQuestionStates({
-      current,
-      total,
+      current: data.current,
+      total: data.total,
     })
+    // Set the music from the server event or use config music
+    setQuestionMusic(data.music || configMusic?.question)
   })
 
   useEvent("game:errorMessage", (message) => {
@@ -50,6 +53,13 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
   useEffect(() => {
     setIsDisabled(false)
   }, [statusName])
+
+  // Clear question music when leaving SHOW_QUESTION state
+  useEffect(() => {
+    if (statusName !== "SHOW_QUESTION") {
+      setQuestionMusic(undefined)
+    }
+  }, [statusName, setQuestionMusic])
 
   const handleNext = () => {
     setIsDisabled(true)

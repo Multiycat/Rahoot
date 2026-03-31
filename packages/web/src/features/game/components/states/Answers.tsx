@@ -4,7 +4,9 @@ import {
   useEvent,
   useSocket,
 } from "@rahoot/web/features/game/contexts/socketProvider"
+import { useManagerStore } from "@rahoot/web/features/game/stores/manager"
 import { usePlayerStore } from "@rahoot/web/features/game/stores/player"
+import { useQuestionStore } from "@rahoot/web/features/game/stores/question"
 import {
   ANSWERS_COLORS,
   ANSWERS_ICONS,
@@ -21,11 +23,13 @@ type Props = {
 }
 
 const Answers = ({
-  data: { question, answers, image, audio, video, time, totalPlayer },
+  data: { question, answers, image, audio, video, music, time, totalPlayer },
 }: Props) => {
   const { gameId }: { gameId?: string } = useParams()
   const { socket } = useSocket()
   const { player } = usePlayerStore()
+  const { music: configMusic } = useManagerStore()
+  const { setQuestionMusic } = useQuestionStore()
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
@@ -34,7 +38,7 @@ const Answers = ({
     volume: 0.1,
   })
 
-  const [playMusic, { stop: stopMusic }] = useSound(SFX_ANSWERS_MUSIC, {
+  const [playMusic, { stop: stopMusic }] = useSound(music || configMusic?.answer || SFX_ANSWERS_MUSIC, {
     volume: 0.2,
     interrupt: true,
     loop: true,
@@ -54,6 +58,11 @@ const Answers = ({
     sfxPop()
   }
 
+  // Clear question music when entering answers state
+  useEffect(() => {
+    setQuestionMusic(undefined)
+  }, [setQuestionMusic])
+
   useEffect(() => {
     if (video || audio) {
       return
@@ -65,7 +74,7 @@ const Answers = ({
     return () => {
       stopMusic()
     }
-  }, [playMusic, stopMusic, video, audio])
+  }, [playMusic, stopMusic, video, audio, music])
 
   useEvent("game:cooldown", (sec) => {
     setCooldown(sec)
