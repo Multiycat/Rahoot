@@ -43,6 +43,8 @@ const GameWrapper = ({ children, statusName, onNext, manager, onBackToManager }:
     })
     // Set the music from the server event or use config music
     setQuestionMusic(data.music || configMusic?.question)
+    // Stop any previously playing music
+    useQuestionStore.getState().stopAllMusic()
   })
 
   useEvent("game:errorMessage", (message) => {

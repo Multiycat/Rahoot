@@ -29,7 +29,7 @@ const Answers = ({
   const { socket } = useSocket()
   const { player } = usePlayerStore()
   const { music: configMusic } = useManagerStore()
-  const { setQuestionMusic } = useQuestionStore()
+  const { setQuestionMusic, setAnswerMusic } = useQuestionStore()
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
@@ -58,10 +58,12 @@ const Answers = ({
     sfxPop()
   }
 
-  // Clear question music when entering answers state
+  // Clear question music when entering answers state and stop previous audio
   useEffect(() => {
     setQuestionMusic(undefined)
-  }, [setQuestionMusic])
+    // Store the answer music for later use
+    setAnswerMusic(music || configMusic?.answer || SFX_ANSWERS_MUSIC)
+  }, [setQuestionMusic, setAnswerMusic, music, configMusic?.answer])
 
   useEffect(() => {
     if (video || audio) {

@@ -9,7 +9,7 @@ type Props = {
 }
 
 const Question = ({ data: { question, image, cooldown } }: Props) => {
-  const { questionMusic } = useQuestionStore()
+  const { questionMusic, stopAllMusic } = useQuestionStore()
   const [sfxShow] = useSound(SFX_SHOW_SOUND, { volume: 0.5 })
   const [playMusic, { stop: stopMusic }] = useSound(questionMusic || "", {
     volume: 0.2,
@@ -24,6 +24,8 @@ const Question = ({ data: { question, image, cooldown } }: Props) => {
   // Play the question music if available
   useEffect(() => {
     if (questionMusic) {
+      // Stop any previous audio before playing new music
+      stopAllMusic()
       playMusic()
       return () => {
         stopMusic()
@@ -32,7 +34,7 @@ const Question = ({ data: { question, image, cooldown } }: Props) => {
       // Stop music if it becomes undefined
       stopMusic()
     }
-  }, [questionMusic, playMusic, stopMusic])
+  }, [questionMusic, playMusic, stopMusic, stopAllMusic])
 
   return (
     <section className="relative mx-auto flex h-full w-full max-w-7xl flex-1 flex-col items-center px-4">
