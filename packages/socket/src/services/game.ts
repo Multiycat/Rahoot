@@ -676,35 +676,35 @@ class Game {
       playersNotFinished,
     }
   }
-  showLeaderboard() {
-    const isLastRound =
-      this.round.currentQuestion + 1 === this.quizz.questions.length
+   showLeaderboard() {
+     const isLastRound =
+       this.round.currentQuestion + 1 === this.quizz.questions.length
 
-    if (isLastRound) {
-      this.started = false
+     if (isLastRound) {
+       this.started = false
 
-      const gameDuration = Math.round((Date.now() - this.gameStartTime) / 1000)
-      const topPlayers = this.leaderboard.slice(0, 3).map((p) => ({
-        username: p.username,
-        points: p.points,
-      }))
-      const report = this.buildGameReport(gameDuration)
+       const gameDuration = Math.round((Date.now() - this.gameStartTime) / 1000)
+       const topPlayers = this.leaderboard.slice(0, 3).map((p) => ({
+         username: p.username,
+         points: p.points,
+       }))
+       const report = this.buildGameReport(gameDuration)
 
-      Config.updateQuizzStats(
-        this.quizzId,
-        this.players.length,
-        topPlayers,
-        gameDuration,
-        report,
-      )
+       Config.updateQuizzStats(
+         this.quizzId,
+         this.players.length,
+         topPlayers,
+         gameDuration,
+         report,
+       )
 
-      this.broadcastStatus(STATUS.FINISHED, {
-        subject: this.quizz.subject,
-        top: this.leaderboard.slice(0, 3),
-      })
+       // Automatically request feedback at the end of the game
+       this.broadcastStatus(STATUS.FEEDBACK, {
+         question: "How would you rate this quiz?",
+       })
 
-      return
-    }
+       return
+     }
 
     const oldLeaderboard = this.tempOldLeaderboard
       ? this.tempOldLeaderboard
@@ -726,6 +726,46 @@ class Game {
     this.quizz.theme = theme
     this.io.to(this.gameId).emit("game:theme", theme)
   }
+
+  requestFeedback(socket: Socket, question: string) {
+    if (socket.id !== this.manager.id) {
+      return
+    }
+
+    this.broadcastStatus(STATUS.FEEDBACK, { question })
+  }
+
+   recordFeedback(socket: Socket, rating: number) {
+     const player = this.players.find((p) => p.id === socket.id)
+
+     if (!player) {
+       return
+     }
+
+     // Notify the manager that feedback was received
+     this.io
+       .to(this.manager.id)
+       .emit("manager:feedbackReceived", {
+         username: player.username,
+         rating,
+       })
+
+     // Send confirmation to player
+     socket.emit("game:feedbackConfirmed")
+   }
+
+   closeFeedback(socket: Socket) {
+     if (socket.id !== this.manager.id) {
+       return
+     }
+
+     // Show the finished status with top players
+     this.broadcastStatus(STATUS.FINISHED, {
+       subject: this.quizz.subject,
+       top: this.leaderboard.slice(0, 3),
+     })
+   }
 }
 
 export default Game
+

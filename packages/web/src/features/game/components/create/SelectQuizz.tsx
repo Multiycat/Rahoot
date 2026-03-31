@@ -96,15 +96,15 @@ const SelectQuizz = ({ quizzList, onSelect, onEdit, onDelete, onExport, onImport
             <p className="py-4 text-center text-gray-500">No quizz available. Create one first!</p>
           ) : (
             quizzList.map((quizz) => (
-              <button
+              <div
                 key={quizz.id}
                 className={clsx(
-                  "flex w-full items-center justify-between rounded-md p-3 outline outline-gray-300",
-                  selected === quizz.id && "outline-primary outline-2",
+                  "flex w-full cursor-pointer items-center justify-between rounded-md p-3 outline outline-gray-300 hover:bg-gray-50 transition-colors",
+                  selected === quizz.id && "outline-primary outline-2 bg-blue-50",
                 )}
                 onClick={handleSelect(quizz.id)}
               >
-                <div className="flex flex-col items-start">
+                <div className="flex flex-1 flex-col items-start">
                   <span className="font-medium">{quizz.subject}</span>
                   <span className="text-xs text-gray-500">
                     {quizz.questions.length} question{quizz.questions.length > 1 ? "s" : ""}
@@ -147,7 +147,7 @@ const SelectQuizz = ({ quizzList, onSelect, onEdit, onDelete, onExport, onImport
                     )}
                   ></div>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>

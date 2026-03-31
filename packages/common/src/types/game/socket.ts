@@ -42,6 +42,7 @@ export interface ServerToClientEvents {
   "game:updateQuestion": (_data: { current: number; total: number }) => void
   "game:playerAnswer": (_count: number) => void
   "game:theme": (_theme: QuizzTheme) => void
+  "game:feedbackConfirmed": () => void
 
   // Player events
   "player:successReconnect": (_data: {
@@ -83,6 +84,7 @@ export interface ServerToClientEvents {
   "manager:removePlayer": (_playerId: string) => void
   "manager:errorMessage": (_message: string) => void
   "manager:playerKicked": (_playerId: string) => void
+  "manager:feedbackReceived": (_data: { username: string; rating: number }) => void
 }
 
 export interface ClientToServerEvents {
@@ -103,8 +105,10 @@ export interface ClientToServerEvents {
   "manager:kickPlayer": (_message: { gameId: string; playerId: string }) => void
   "manager:startGame": (_message: MessageGameId) => void
   "manager:abortQuiz": (_message: MessageGameId) => void
-  "manager:nextQuestion": (_message: MessageGameId) => void
-  "manager:showLeaderboard": (_message: MessageGameId) => void
+   "manager:nextQuestion": (_message: MessageGameId) => void
+   "manager:showLeaderboard": (_message: MessageGameId) => void
+   "manager:requestFeedback": (_message: MessageWithoutStatus<{ question: string }>) => void
+   "manager:closeFeedback": (_message: MessageGameId) => void
 
   // Player actions
   "player:join": (_inviteCode: string) => void
@@ -113,6 +117,7 @@ export interface ClientToServerEvents {
   "player:selectedAnswer": (
     _message: MessageWithoutStatus<{ answerKey: number }>,
   ) => void
+  "player:feedback": (_message: MessageWithoutStatus<{ rating: number }>) => void
 
   // Common
   disconnect: () => void

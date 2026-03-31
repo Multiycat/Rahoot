@@ -335,9 +335,21 @@ io.on("connection", (socket) => {
     withGame(gameId, socket, (game) => game.showLeaderboard()),
   );
 
-  socket.on("manager:setQuizzTheme", ({ gameId, theme }) =>
-    withGame(gameId, socket, (game) => game.setTheme(socket, theme)),
+  socket.on("manager:requestFeedback", ({ gameId, data }) =>
+    withGame(gameId, socket, (game) => game.requestFeedback(socket, data.question)),
   );
+
+   socket.on("player:feedback", ({ gameId, data }) =>
+     withGame(gameId, socket, (game) => game.recordFeedback(socket, data.rating)),
+   );
+
+   socket.on("manager:closeFeedback", ({ gameId }) =>
+     withGame(gameId, socket, (game) => game.closeFeedback(socket)),
+   );
+
+   socket.on("manager:setQuizzTheme", ({ gameId, theme }) =>
+     withGame(gameId, socket, (game) => game.setTheme(socket, theme)),
+   );
 
   socket.on("disconnect", () => {
     console.log(`A user disconnected : ${socket.id}`);

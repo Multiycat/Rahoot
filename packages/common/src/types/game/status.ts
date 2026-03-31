@@ -10,6 +10,7 @@ export const STATUS = {
   SHOW_RESPONSES: "SHOW_RESPONSES",
   SHOW_LEADERBOARD: "SHOW_LEADERBOARD",
   FINISHED: "FINISHED",
+  FEEDBACK: "FEEDBACK",
   WAIT: "WAIT",
 } as const
 
@@ -39,6 +40,7 @@ export type CommonStatusDataMap = {
   }
   WAIT: { text: string }
   FINISHED: { subject: string; top: Player[] }
+  FEEDBACK: { question: string }
 }
 
 type ManagerExtraStatus = {

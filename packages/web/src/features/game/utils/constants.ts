@@ -1,4 +1,5 @@
 import Answers from "@rahoot/web/features/game/components/states/Answers"
+import Feedback from "@rahoot/web/features/game/components/states/Feedback"
 import Leaderboard from "@rahoot/web/features/game/components/states/Leaderboard"
 import Podium from "@rahoot/web/features/game/components/states/Podium"
 import Prepared from "@rahoot/web/features/game/components/states/Prepared"
@@ -42,6 +43,7 @@ export const GAME_STATE_COMPONENTS = {
   [STATUS.SHOW_START]: Start,
   [STATUS.SHOW_RESULT]: Result,
   [STATUS.SHOW_PREPARED]: Prepared,
+  [STATUS.FEEDBACK]: Feedback,
 }
 
 export const GAME_STATE_COMPONENTS_MANAGER = {
@@ -67,6 +69,8 @@ export const MANAGER_SKIP_EVENTS = {
   [STATUS.SELECT_ANSWER]: "manager:abortQuiz",
   [STATUS.SHOW_RESPONSES]: "manager:showLeaderboard",
   [STATUS.SHOW_LEADERBOARD]: "manager:nextQuestion",
+  [STATUS.FINISHED]: "manager:requestFeedback",
+  [STATUS.FEEDBACK]: "manager:closeFeedback",
 } as const satisfies Partial<
   Record<keyof typeof GAME_STATE_COMPONENTS_MANAGER, string>
 >
@@ -87,6 +91,7 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_RESULT]: null,
   [STATUS.SHOW_RESPONSES]: "Next",
   [STATUS.SHOW_LEADERBOARD]: "Next",
-  [STATUS.FINISHED]: null,
+  [STATUS.FINISHED]: "Request Feedback",
+  [STATUS.FEEDBACK]: "Close",
   [STATUS.WAIT]: null,
 }

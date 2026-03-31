@@ -1,4 +1,5 @@
 import GameWrapper from "@rahoot/web/features/game/components/GameWrapper"
+import FeedbackResults from "@rahoot/web/features/game/components/FeedbackResults"
 import {
   useEvent,
   useSocket,
@@ -87,14 +88,17 @@ const ManagerGamePage = () => {
       : null
 
   return (
-    <GameWrapper 
-      statusName={status?.name} 
-      onNext={handleSkip} 
-      manager
-      onBackToManager={handleBackToManager}
-    >
-      {CurrentComponent && <CurrentComponent data={status!.data as never} />}
-    </GameWrapper>
+    <>
+      <FeedbackResults />
+      <GameWrapper 
+        statusName={status?.name} 
+        onNext={handleSkip} 
+        manager
+        onBackToManager={handleBackToManager}
+      >
+        {CurrentComponent && <CurrentComponent data={status!.data as never} />}
+      </GameWrapper>
+    </>
   )
 }
 
