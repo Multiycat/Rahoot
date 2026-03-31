@@ -23,18 +23,24 @@ RUN pnpm build
 # ---- RUNNER ----  #
 #####################
 FROM alpine:3.21 AS runner
-RUN apk add --no-cache nginx nodejs npm supervisor
+RUN apk add --no-cache nginx nodejs npm supervisor git bash
 # Copier les configs nginx et supervisor
-COPY docker/nginx.conf        /etc/nginx/http.d/default.conf
-COPY docker/supervisord.conf  /etc/supervisord.conf
-WORKDIR /home/container
+COPY docker/nginx-main.conf       /etc/nginx/nginx.conf
+COPY docker/nginx.conf            /etc/nginx/http.d/default.conf
+COPY docker/supervisord.conf      /etc/supervisord.conf
+WORKDIR /app
 # Copier les assets construits
-COPY --from=builder /home/container/packages/web/dist           /home/container/web
-COPY --from=builder /home/container/packages/socket/dist/index.cjs /home/container/socket/index.cjs
+COPY --from=builder /home/container/packages/web/dist           /app/packages/web/dist
+COPY --from=builder /home/container/packages/socket/dist/index.cjs /app/packages/socket/dist/index.cjs
+COPY . .
 
-RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs \
-    && chmod -R 777 /var/lib/nginx
+# Créer les répertoires temporaires pour Nginx
+RUN mkdir -p /tmp/nginx/tmp /tmp/nginx/logs \
+    && chmod -R 777 /tmp/nginx
 
-# (Adapter si tu as un autre point d'entrée ou des ressources à copier)
+# Copier et rendre exécutable le script de démarrage
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 EXPOSE 8008
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+ENTRYPOINT ["/app/start.sh"]
