@@ -1,3 +1,4 @@
+# Créer les répertoires temporaires pour Nginx
 ##################
 # ---- BASE ---- #
 ##################
@@ -10,14 +11,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # ---- BUILDER ---- #
 #####################
 FROM base AS builder
-WORKDIR /build
-# Cloner et compiler l'app
+WORKDIR /home/container
+
 RUN apk add --no-cache git && \
     git clone --depth 1 https://github.com/Multiycat/rahoot.git . && \
     pnpm install --frozen-lockfile && \
     pnpm run build && \
-    rm -rf node_modules .pnpm-store && \
-    apk del git
+    rm -rf node_modules .pnpm-store
 
 #####################
 # ---- RUNNER ----  #
@@ -25,27 +25,28 @@ RUN apk add --no-cache git && \
 FROM alpine:3.21 AS runner
 RUN apk add --no-cache nginx nodejs npm supervisor git
 
-# Copier les configs nginx et supervisor
-COPY docker/nginx-main.conf       /etc/nginx/nginx.conf
-COPY docker/nginx.conf            /etc/nginx/http.d/default.conf
-COPY docker/supervisord.conf      /etc/supervisord.conf
+# Config nginx & supervisor
+COPY docker/nginx-main.conf  /home/container/etc/nginx/nginx.conf
+COPY docker/nginx.conf       /home/container/etc/nginx/http.d/default.conf
+COPY docker/supervisord.conf /home/container/etc/supervisord.conf
 
-# Créer les répertoires temporaires pour Nginx
-RUN mkdir -p /tmp/nginx/tmp /tmp/nginx/logs \
-    && chmod -R 777 /tmp/nginx
+# Dossiers temporaires nginx
+RUN mkdir -p /home/container/tmp/nginx/tmp /home/container/tmp/nginx/logs \
+    && chmod -R 777 /home/container/tmp/nginx
 
-# Copier les fichiers compilés depuis le builder
-COPY --from=builder /build/packages/web/dist           /app/packages/web/dist
-COPY --from=builder /build/packages/socket/dist        /app/packages/socket/dist
+# ✅ CORRECTION ICI
+COPY --from=builder /home/container/packages/web/dist    /home/container/app/packages/web/dist
+COPY --from=builder /home/container/packages/socket/dist /home/container/app/packages/socket/dist
 
-# Créer le répertoire config s'il n'existe pas (il sera peuplé à l'exécution)
-RUN mkdir -p /app/config/quizz
+# Config app
+RUN mkdir -p /home/container/app/config/quizz
 
-# Copier et rendre exécutable le script de démarrage
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# Script start
+COPY start.sh /home/container/app/start.sh
+RUN chmod +x /home/container/app/start.sh
 
-WORKDIR /app
+WORKDIR /home/container/app
 EXPOSE 8008
-CMD ["/bin/sh", "/app/start.sh"]
 
+# ✅ CORRECTION ICI AUSSI
+CMD ["/bin/sh", "/home/container/app/start.sh"]
