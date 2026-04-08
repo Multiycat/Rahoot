@@ -36,8 +36,9 @@ else
   # Note: Le répertoire dist n'existe pas dans le repo, donc on copie juste les sources
   # Pour les mises à jour en production, il faudrait soit:
   # 1. Reconstruire avec pnpm (trop lourd pour le runtime)
+  chmod -R 777 /app 2>/dev/null || true
   # 2. Avoir les dist pré-compilés dans le repo
-  
+
   cp -r ./config/* /tmp/config/ 2>/dev/null || true
   echo "Config files checked"
 fi
