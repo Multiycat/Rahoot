@@ -7,11 +7,12 @@ import {
   QuizzStats,
   QuizzWithId,
 } from "@rahoot/common/types/game";
+import Cache from "@rahoot/socket/services/cache";
 import fs from "fs";
 import { resolve } from "path";
 import { v4 as uuid } from "uuid";
 
-const inContainerPath = process.env.CONFIG_PATH || "/home/container/config";
+const inContainerPath = process.env.CONFIG_PATH || "/app";
 
 const getPath = (path: string = "") =>
   inContainerPath
@@ -23,7 +24,7 @@ class Config {
     const isConfigFolderExists = fs.existsSync(getPath());
 
     if (!isConfigFolderExists) {
-      fs.mkdirSync(getPath());
+      fs.mkdirSync(getPath(), { recursive: true });
     }
 
     const isGameConfigExists = fs.existsSync(getPath("game.json"));
@@ -44,7 +45,7 @@ class Config {
     const isQuizzExists = fs.existsSync(getPath("quizz"));
 
     if (!isQuizzExists) {
-      fs.mkdirSync(getPath("quizz"));
+      fs.mkdirSync(getPath("quizz"), { recursive: true });
 
       fs.writeFileSync(
         getPath("quizz/example.json"),
@@ -112,9 +113,17 @@ class Config {
   }
 
   static quizz() {
+    const cache = Cache.getInstance();
+
+    // Retourner le cache si valide
+    if (cache.isQuizzCacheValid()) {
+      return cache.getQuizzCache() || [];
+    }
+
     const isExists = fs.existsSync(getPath("quizz"));
 
     if (!isExists) {
+      cache.setQuizzCache([]);
       return [];
     }
 
@@ -135,10 +144,10 @@ class Config {
         };
       });
 
+      cache.setQuizzCache(quizz);
       return quizz || [];
     } catch (error) {
       console.error("Failed to read quizz config:", error);
-
       return [];
     }
   }
@@ -157,6 +166,9 @@ class Config {
 
     fs.writeFileSync(filePath, JSON.stringify(quizz, null, 2));
 
+    // Invalider le cache
+    Cache.getInstance().invalidateQuizzCache();
+
     console.log(`Quizz saved: ${filePath}`);
 
     return {
@@ -173,6 +185,10 @@ class Config {
     }
 
     fs.unlinkSync(filePath);
+
+    // Invalider le cache
+    Cache.getInstance().invalidateQuizzCache();
+
     console.log(`Quizz deleted: ${filePath}`);
 
     return true;
@@ -186,6 +202,10 @@ class Config {
     }
 
     fs.writeFileSync(filePath, JSON.stringify(quizz, null, 2));
+
+    // Invalider le cache
+    Cache.getInstance().invalidateQuizzCache();
+
     console.log(`Quizz updated: ${filePath}`);
 
     return {
@@ -195,16 +215,26 @@ class Config {
   }
 
   static questionBank(): QuestionBankItem[] {
+    const cache = Cache.getInstance();
+
+    // Retourner le cache si valide
+    if (cache.isQuestionBankCacheValid()) {
+      return cache.getQuestionBankCache() || [];
+    }
+
     const filePath = getPath("question-bank.json");
 
     if (!fs.existsSync(filePath)) {
+      cache.setQuestionBankCache([]);
       return [];
     }
 
     try {
       const content = fs.readFileSync(filePath, "utf-8");
       const parsed = JSON.parse(content);
-      return Array.isArray(parsed) ? parsed : [];
+      const result = Array.isArray(parsed) ? parsed : [];
+      cache.setQuestionBankCache(result);
+      return result;
     } catch (error) {
       console.error("Failed to read question bank:", error);
       return [];
@@ -220,10 +250,20 @@ class Config {
     };
 
     current.unshift(item);
+
+    // Ensure directory exists before writing
+    const bankDir = getPath();
+    if (!fs.existsSync(bankDir)) {
+      fs.mkdirSync(bankDir, { recursive: true });
+    }
+
     fs.writeFileSync(
       getPath("question-bank.json"),
       JSON.stringify(current, null, 2),
     );
+
+    // Invalider le cache
+    Cache.getInstance().invalidateQuestionBankCache();
 
     return item;
   }
@@ -240,6 +280,10 @@ class Config {
       getPath("question-bank.json"),
       JSON.stringify(next, null, 2),
     );
+
+    // Invalider le cache
+    Cache.getInstance().invalidateQuestionBankCache();
+
     return true;
   }
 

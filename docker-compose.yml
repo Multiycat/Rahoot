@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  rahoot:
+    image: multiycat/rahoot:latest
+    container_name: rahoot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # Web app (Vite)
+      - "3003:3003"  # Socket server
+    environment:
+      # Node environment
+      NODE_ENV: production
+
+      # Socket server configuration
+      ALLOWED_ORIGINS: "https://rahoot.multiycat.fr,http://localhost:3000"
+
+      # Config path (persistent storage)
+      CONFIG_PATH: /home/container/config
+
+    volumes:
+      # Persist configuration, quizz, and game data
+      - rahoot_config:/home/container/config
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  rahoot_config:
+    driver: local

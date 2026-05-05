@@ -1,52 +1,68 @@
-# Créer les répertoires temporaires pour Nginx
-##################
-# ---- BASE ---- #
-##################
 FROM node:24-alpine AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+
+# Enable and prepare pnpm via Corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-#####################
-# ---- BUILDER ---- #
-#####################
+# ----- DEPENDENCIES -----
+FROM base AS deps
+WORKDIR /app
+
+# Copy pnpm configuration files
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/web/package.json ./packages/web/
+COPY packages/socket/package.json ./packages/socket/
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# ----- BUILDER -----
 FROM base AS builder
-WORKDIR /home/container
+WORKDIR /app
 
-RUN apk add --no-cache git && \
-    git clone --depth 1 https://github.com/Multiycat/rahoot.git . && \
-    pnpm install --frozen-lockfile && \
-    pnpm run build && \
-    rm -rf node_modules .pnpm-store
+# Copy all monorepo files
+COPY . .
 
-#####################
-# ---- RUNNER ----  #
-#####################
-FROM alpine:3.21 AS runner
-RUN apk add --no-cache nginx nodejs npm supervisor git
+# Install all dependencies (including dev) for build
+RUN pnpm install --frozen-lockfile
 
-# Config nginx & supervisor
-COPY docker/nginx-main.conf  /home/container/etc/nginx/nginx.conf
-COPY docker/nginx.conf       /home/container/etc/nginx/http.d/default.conf
-COPY docker/supervisord.conf /home/container/etc/supervisord.conf
+# Build Next.js app with standalone output for smaller runtime image
+WORKDIR /app/packages/web
+RUN pnpm build
 
-# Dossiers temporaires nginx
-RUN mkdir -p /home/container/tmp/nginx/tmp /home/container/tmp/nginx/logs \
-    && chmod -R 777 /home/container/tmp/nginx
+# Build socket server if needed (TypeScript or similar)
+WORKDIR /app/packages/socket
+RUN if [ -f "tsconfig.json" ]; then pnpm build; fi
 
-# ✅ CORRECTION ICI
-COPY --from=builder /home/container/packages/web/dist    /home/container/app/packages/web/dist
-COPY --from=builder /home/container/packages/socket/dist /home/container/app/packages/socket/dist
+# ----- RUNNER -----
+FROM node:24-alpine AS runner
+WORKDIR /app
 
-# Config app
-RUN mkdir -p /home/container/app/config/quizz
+# Create a non-root user for better security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
 
-# Script start
-COPY start.sh /home/container/app/start.sh
-RUN chmod +x /home/container/app/start.sh
 
-WORKDIR /home/container/app
-EXPOSE 8008
+# Enable pnpm in the runtime image
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# ✅ CORRECTION ICI AUSSI
-CMD ["/bin/sh", "/home/container/app/start.sh"]
+# Copy configuration files
+COPY pnpm-workspace.yaml package.json ./
+
+# Copy the Vite build output
+COPY --from=builder /app/packages/web/dist ./packages/web/dist
+COPY --from=builder /app/packages/web/package.json ./packages/web/
+
+# Copy the socket server build
+COPY --from=builder /app/packages/socket/dist ./packages/socket/dist
+
+# Install serve to run the static web app
+RUN npm install -g serve
+
+# Expose the web and socket ports
+EXPOSE 3000 3003
+
+# Environment variables
+ENV NODE_ENV=production
+
+# Start both services (Vite web app + Socket server)
+CMD ["sh", "-c", "serve -s packages/web/dist -l 3000 & node packages/socket/dist/index.cjs"]

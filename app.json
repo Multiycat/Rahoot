@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "05545886-a2b5-41cf-b68f-7d0bf8e9dd89"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.multiycat.rahoot",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

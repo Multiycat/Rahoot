@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@400;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+
+@theme {
+  --font-headline: "Epilogue", sans-serif;
+  --font-body: "Inter", sans-serif;
+  
+  --color-primary: #ffbd7f;
+  --color-primary-container: #ff9500;
+  --color-on-primary-container: #643700;
+  
+  --color-surface: #16130f;
+  --color-surface-container: #231f1b;
+  --color-surface-container-low: #1e1b17;
+  --color-surface-container-high: #2d2925;
+  --color-surface-container-highest: #38342f;
+  --color-surface-container-lowest: #110e0a;
+  
+  --color-on-surface: #e9e1da;
+  --color-on-surface-variant: #dbc2ad;
+  
+  --color-outline: #a38d7a;
+  --color-outline-variant: #554334;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+.glass-panel {
+  background: rgba(45, 41, 37, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.cta-gradient {
+  background: linear-gradient(135deg, #ff9500 0%, #ffb874 100%);
+}

@@ -52,4 +52,4 @@ echo "=== Application ready ==="
 # START
 # =========================
 echo "Starting supervisord..."
-exec /usr/bin/supervisord -c /home/container/app/docker/supervisord.conf/
+exec /usr/bin/supervisord -c /home/container/app/docker/supervisord.conf

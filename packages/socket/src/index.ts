@@ -80,7 +80,7 @@ io.on("connection", (socket) => {
     socket.emit("game:reset", "Game expired");
   });
 
-  socket.on("manager:auth", (password) => {
+   socket.on("manager:auth", (password) => {
     try {
       const config = Config.game();
 
@@ -99,6 +99,7 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // Utiliser la liste en cache pour éviter les lectures filesystem répétées
       socket.emit("manager:quizzList", Config.quizz());
     } catch (error) {
       console.error("Failed to read game config:", error);
